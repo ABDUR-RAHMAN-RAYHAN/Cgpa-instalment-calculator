@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Ledger — CGPA & Installment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root{
+    --paper:#f7f5f0;
+    --paper-raised:#ffffff;
+    --ink:#1c2333;
+    --ink-soft:#4b5468;
+    --ink-faint:#8b93a6;
+    --rule:#d8d3c6;
+    --field-bg:#ffffff;
+    --field-border:#cfc9ba;
+    --gold:#a9812f;
+    --gold-strong:#8a691f;
+    --good-bg:#eef4ea; --good-ink:#33532c; --good-line:#b7cfa9;
+    --mid-bg:#D4A72C;  --mid-ink:#6b4a12;  --mid-line:#e3c485;
+    --low-bg:#D4A72C;  --low-ink:#7a2e22;  --low-line:#e2b3a8;
+    --shadow: 0 1px 2px rgba(28,35,51,.04), 0 12px 32px -16px rgba(28,35,51,.18);
+    --line: var(--rule);
+    --paper-dim:#f1ece1;
+    --sage: var(--good-ink); --sage-soft: var(--good-bg); --sage-line: var(--good-line);
+    --rust: var(--low-ink); --rust-soft: var(--low-bg); --rust-line: var(--low-line);
+    --gold-soft: var(--mid-bg);
+    --ledger-head-bg:#1c2333; --ledger-head-text:#f7f5f0;
+    --accent-strong: var(--ink); --accent-strong-text:#ffffff;
+  }
+  body[data-theme="dark"]{
+    --paper:#12141b;
+    --paper-raised:#1a1d27;
+    --ink:#eceaf0;
+    --ink-soft:#a9adc0;
+    --ink-faint:#6d7288;
+    --rule:#2c3040;
+    --field-bg:#20232f;
+    --field-border:#383c4d;
+    --gold:#d7b258;
+    --gold-strong:#e7c876;
+    --good-bg:#182619; --good-ink:#a9d69a; --good-line:#31502f;
+    --mid-bg:#2a2113;  --mid-ink:#e6c37c;  --mid-line:#5a4620;
+    --low-bg:#2a1815;  --low-ink:#e6a290;  --low-line:#5a2c24;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 20px 40px -20px rgba(0,0,0,.6);
+    --paper-dim:#20232f;
+    --ledger-head-bg:#090b11; --ledger-head-text:#e7c876;
+    --accent-strong: var(--gold); --accent-strong-text:#171310;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter',sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    transition:background .35s ease,color .35s ease;
+  }
+  .wrap{ max-width:1040px; margin:0 auto; padding:2.5rem 1.25rem 4rem; }
+  @media(min-width:640px){ .wrap{ padding:4rem 1.5rem 5rem; } }
+  #cgpa-tab{ max-width:720px; margin:0 auto; }
+
+  /* ---------- Tabs ---------- */
+  .tab-nav{
+    display:flex; justify-content:center; gap:.4rem; margin:0 0 2.5rem;
+    border-bottom:1px solid var(--rule);
+  }
+  .tab-btn{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:.85rem;
+    background:none; border:none; cursor:pointer; color:var(--ink-faint);
+    padding:.7rem 1.1rem; border-bottom:2px solid transparent; margin-bottom:-1px;
+    transition:color .2s ease, border-color .2s ease;
+  }
+  .tab-btn:hover{ color:var(--ink-soft); }
+  .tab-btn.active{ color:var(--ink); border-bottom-color:var(--gold); }
+  .tab-content{ display:none; }
+  .tab-content.active{ display:block; animation:rise .4s ease both; }
+
+  /* ---------- Masthead ---------- */
+  .masthead{ text-align:center; margin-bottom:2.25rem; position:relative; }
+  .masthead .kicker{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.7rem; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--gold-strong); font-weight:600; margin:0 0 .6rem;
+  }
+  .masthead h1{
+    font-family:'Fraunces',serif; font-weight:600; font-optical-sizing:auto;
+    font-size:clamp(2rem,5vw,2.75rem); margin:0; letter-spacing:-.01em;
+  }
+  .masthead p{ color:var(--ink-soft); margin:.6rem 0 0; font-size:.95rem; }
+  .rule{
+    border:none; border-top:1px solid var(--rule); margin:1.75rem 0;
+  }
+  .rule.thick{ border-top:2px solid var(--ink); opacity:.08; }
+
+  .theme-switch{
+    position:absolute; top:.15rem; right:0;
+    display:flex; align-items:center; gap:.5rem;
+  }
+  .theme-toggle{
+    width:44px; height:24px; border-radius:12px; background:var(--field-border);
+    cursor:pointer; position:relative; transition:background .3s;
+  }
+  .theme-toggle::before{
+    content:''; position:absolute; top:2px; left:2px; width:20px; height:20px;
+    border-radius:50%; background:var(--paper-raised); box-shadow:var(--shadow);
+    transition:transform .3s;
+  }
+  #theme-checkbox:checked + .theme-toggle{ background:var(--gold); }
+  #theme-checkbox:checked + .theme-toggle::before{ transform:translateX(20px); }
+  #theme-icon svg{ width:16px; height:16px; color:var(--ink-faint); }
+
+  /* ---------- Sections (ledger sheets) ---------- */
+  .sheet{
+    background:var(--paper-raised);
+    border:1px solid var(--rule);
+    border-radius:10px;
+    padding:1.5rem;
+    margin-bottom:1.25rem;
+    box-shadow:var(--shadow);
+  }
+  @media(min-width:640px){ .sheet{ padding:1.85rem 2rem; } }
+  .sheet h2{
+    font-family:'Fraunces',serif; font-weight:600; font-size:1.15rem;
+    margin:0 0 .25rem; letter-spacing:-.01em;
+  }
+  .sheet .sub{ color:var(--ink-faint); font-size:.82rem; margin:0 0 1.1rem; }
+
+  .grid{ display:grid; gap:1rem; }
+  .grid.cols-3{ grid-template-columns:repeat(3,1fr); }
+  .grid.cols-4{ grid-template-columns:repeat(4,1fr); }
+  @media(max-width:640px){ .grid.cols-3,.grid.cols-4{ grid-template-columns:1fr; } }
+
+  label{
+    display:block; font-size:.72rem; font-weight:600; letter-spacing:.04em;
+    text-transform:uppercase; color:var(--ink-faint); margin-bottom:.4rem;
+  }
+  input, select{
+    width:100%; font-family:'IBM Plex Mono',monospace; font-size:.95rem;
+    background:var(--field-bg); color:var(--ink);
+    border:1px solid var(--field-border); border-radius:7px;
+    padding:.65rem .8rem; transition:border-color .2s, box-shadow .2s;
+    -webkit-appearance:none; appearance:none;
+  }
+  select{ font-family:'Inter',sans-serif;
+    background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%238b93a6'%3e%3cpath fill-rule='evenodd' d='M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z' clip-rule='evenodd'/%3e%3c/svg%3e");
+    background-repeat:no-repeat; background-position:right .7rem center; background-size:1.1em; padding-right:2.2rem;
+  }
+  input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  input[type=number]{ -moz-appearance:textfield; }
+  input:focus, select:focus{ outline:none; border-color:var(--gold); box-shadow:0 0 0 3px color-mix(in srgb, var(--gold) 22%, transparent); }
+  .err{ min-height:1.1rem; margin-top:.4rem; font-size:.78rem; color:#b64a3a; visibility:hidden; }
+  .err.on{ visibility:visible; }
+
+  /* ---------- Buttons ---------- */
+  .btn{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:.9rem;
+    border:none; border-radius:7px; padding:.7rem 1rem; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; gap:.45rem;
+    transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .btn:hover{ transform:translateY(-1px); }
+  .btn:active{ transform:translateY(0); }
+  .btn svg{ width:16px; height:16px; }
+  .btn-ink{ background:var(--ink); color:var(--paper); width:100%; }
+  body[data-theme="dark"] .btn-ink{ background:var(--gold); color:#171310; }
+  .btn-outline{ background:transparent; color:var(--ink-soft); border:1px solid var(--field-border); width:100%; }
+  .btn-outline:hover{ border-color:var(--ink-faint); color:var(--ink); }
+  .btn-ghost{ background:transparent; color:var(--gold-strong); padding:.45rem .6rem; }
+  .btn-main{
+    width:100%; padding:1rem; font-size:1rem;
+    background:linear-gradient(135deg, var(--ink), #2b3450);
+    color:#f7f5f0; position:relative; overflow:hidden;
+  }
+  body[data-theme="dark"] .btn-main{ background:linear-gradient(135deg, var(--gold), #b6893a); color:#171310; }
+  .btn-main svg{ width:20px; height:20px; }
+  .btn-row{ display:grid; grid-template-columns:1fr 1.6fr; gap:.75rem; margin-top:.25rem; }
+  @media(max-width:480px){ .btn-row{ grid-template-columns:1fr; } }
+
+  /* ---------- Course ledger rows ---------- */
+  #course-list{ margin:1rem 0 1.4rem; display:flex; flex-direction:column; gap:.55rem; }
+  .course-row{
+    display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+    border:1px solid var(--rule); border-left:3px solid var(--ink-faint);
+    border-radius:8px; padding:.7rem .9rem; background:var(--paper);
+    animation:rise .35s ease both;
+  }
+  .course-row.new{ border-left-color:#4f6bd6; }
+  .course-row.retake{ border-left-color:var(--gold); }
+  .course-row .meta{ font-size:.8rem; color:var(--ink-faint); }
+  .course-row .grade{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:.95rem; }
+  .course-row .flow{ display:flex; align-items:center; gap:.4rem; }
+  .course-row .strike{ text-decoration:line-through; color:var(--ink-faint); font-size:.85rem; }
+  .course-row button{ background:none; border:none; cursor:pointer; color:var(--ink-faint); padding:.35rem; border-radius:6px; }
+  .course-row button:hover{ color:#b64a3a; background:color-mix(in srgb, #b64a3a 10%, transparent); }
+  .empty-row{ text-align:center; color:var(--ink-faint); font-size:.85rem; padding:1rem; border:1px dashed var(--rule); border-radius:8px; }
+  @keyframes rise{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+
+  /* ---------- Result: the stamp ---------- */
+  #result{ display:none; margin-top:1.5rem; }
+  .result-sheet{
+    border-radius:12px; padding:2rem 1.5rem; text-align:center; position:relative;
+    border:1px solid; animation:rise .5s ease both;
+  }
+  .result-sheet.good{ background:var(--good-bg); color:var(--good-ink); border-color:var(--good-line); }
+  .result-sheet.mid{ background:var(--mid-bg); color:var(--mid-ink); border-color:var(--mid-line); }
+  .result-sheet.low{ background:var(--low-bg); color:var(--low-ink); border-color:var(--low-line); }
+
+  .verdict{ font-family:'Fraunces',serif; font-weight:600; font-size:1.4rem; margin:0 0 1.4rem; }
+
+  .stamp-row{ display:flex; flex-wrap:wrap; justify-content:center; gap:2.5rem; }
+  .stamp{
+    width:132px; height:132px; border-radius:50%; border:2px solid currentColor;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    position:relative; transform:rotate(-4deg); flex-shrink:0;
+  }
+  .stamp::before{
+    content:''; position:absolute; inset:6px; border:1px dashed currentColor; border-radius:50%; opacity:.55;
+  }
+  .stamp .num{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:1.9rem; line-height:1; }
+  .stamp .lbl{ font-size:.6rem; letter-spacing:.16em; text-transform:uppercase; margin-top:.35rem; opacity:.85; }
+  .stamp-detail{ text-align:left; font-size:.78rem; opacity:.85; align-self:center; }
+  .stamp-detail div{ margin:.15rem 0; }
+
+  .planner{
+    margin-top:1.5rem; padding-top:1.4rem; border-top:1px dashed currentColor; opacity:.97;
+  }
+  .planner p{ margin:0; line-height:1.9; }
+  .planner input{
+    width:64px; display:inline-block; text-align:center; margin:0 .25rem;
+    background:var(--field-bg); color:var(--ink); border:1px solid var(--field-border);
+  }
+  .planner .answer{ font-weight:700; }
+  .target-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem; text-align:left; }
+  @media(max-width:480px){ .target-grid{ grid-template-columns:1fr; } }
+  .target-grid label{ color:currentColor; opacity:.75; }
+  .target-out{ margin-top:1rem; text-align:center; }
+  .target-out .big{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:1.6rem; }
+
+  /* ---------- Notifications ---------- */
+  #toast-wrap{ position:fixed; top:1.1rem; right:1.1rem; z-index:100; display:flex; flex-direction:column; gap:.5rem; }
+  .toast{
+    font-family:'Inter',sans-serif; font-size:.85rem; font-weight:500;
+    color:#fff; padding:.7rem 1rem; border-radius:8px; display:flex; align-items:center; gap:.5rem;
+    box-shadow:var(--shadow); transform:translateX(130%); transition:transform .35s ease;
+  }
+  .toast.show{ transform:translateX(0); }
+  .toast.success{ background:#3d7a3a; } .toast.error{ background:#b64a3a; }
+  .toast.info{ background:#3b5aa0; } .toast.warning{ background:#a9812f; }
+  .toast svg{ width:16px; height:16px; flex-shrink:0; }
+
+  footer{ text-align:center; margin-top:2.5rem; font-size:.78rem; color:var(--ink-faint); }
+  footer a{ color:var(--gold-strong); text-decoration:none; }
+  footer a:hover{ text-decoration:underline; }
+
+  .confetti-piece{ position:fixed; width:6px; height:13px; top:0; opacity:0; z-index:99; pointer-events:none; }
+
+  /* ================= Installment Ledger (scoped) ================= */
+  #installment-tab .inst-grid{
+    display:grid; grid-template-columns:1.05fr .95fr; gap:28px; align-items:start;
+  }
+  @media (max-width:860px){ #installment-tab .inst-grid{ grid-template-columns:1fr; } }
+
+  #installment-tab .card{
+    background:var(--paper-raised); border:1px solid var(--rule); border-radius:14px;
+    box-shadow:var(--shadow); padding:28px;
+  }
+  #installment-tab .card + .card{ margin-top:20px; }
+
+  #installment-tab .section-title{
+    font-family:'Fraunces',serif; font-size:19px; font-weight:600; margin:0 0 4px;
+    display:flex; align-items:baseline; gap:8px;
+  }
+  #installment-tab .section-num{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--gold-strong); font-weight:600; }
+  #installment-tab .section-hint{ font-size:13px; color:var(--ink-soft); margin:0 0 18px; }
+
+  #installment-tab label.field-label{ display:block; font-size:13px; font-weight:600; color:var(--ink); margin-bottom:8px; text-transform:none; letter-spacing:normal; }
+
+  #installment-tab .pill-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:6px; }
+  #installment-tab .pill{
+    border:1px solid var(--field-border); background:var(--paper); color:var(--ink-soft);
+    padding:9px 14px; border-radius:9px; font-size:13.5px; font-weight:500; cursor:pointer;
+    transition:all .15s ease; font-family:'Inter',sans-serif;
+  }
+  #installment-tab .pill:hover{ border-color:var(--gold); color:var(--ink); }
+  #installment-tab .pill.active{ background:var(--accent-strong); border-color:var(--accent-strong); color:var(--accent-strong-text); }
+  #installment-tab .pill.active.gold{ background:var(--gold); border-color:var(--gold); color:var(--accent-strong-text); }
+
+  #installment-tab .field-group{ margin-bottom:20px; }
+  #installment-tab .field-group:last-child{ margin-bottom:0; }
+
+  #installment-tab input[type="number"], #installment-tab input[type="text"], #installment-tab select{
+    width:100%; border:1px solid var(--field-border); border-radius:9px; padding:11px 13px;
+    font-size:15px; font-family:'IBM Plex Mono',monospace; color:var(--ink); background:var(--paper);
+    transition:border-color .15s ease, background .15s ease;
+  }
+  #installment-tab select{ font-family:'Inter',sans-serif; }
+  #installment-tab input:focus, #installment-tab select:focus{ outline:none; border-color:var(--gold); background:var(--field-bg); }
+  #installment-tab .inline-input{ max-width:220px; }
+
+  #installment-tab .sub-panel{
+    margin-top:10px; padding:14px; background:var(--paper-dim); border-radius:9px; border:1px dashed var(--rule);
+  }
+  #installment-tab .discount-groups{ display:flex; flex-direction:column; gap:14px; }
+  #installment-tab .discount-group-label{
+    font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); font-weight:600; margin-bottom:8px;
+  }
+
+  #installment-tab .receipt{
+    position:sticky; top:24px; background:var(--paper-raised); border:1px solid var(--rule);
+    border-radius:14px; box-shadow:var(--shadow); overflow:hidden;
+  }
+  #installment-tab .receipt-head{ background:var(--ledger-head-bg); color:var(--ledger-head-text); padding:22px 26px; position:relative; }
+  #installment-tab .receipt-head::after{
+    content:""; position:absolute; left:0; right:0; bottom:-1px; height:10px;
+    background:
+      linear-gradient(135deg, transparent 50%, var(--paper-raised) 50%) 0 0/10px 10px repeat-x,
+      linear-gradient(-135deg, transparent 50%, var(--paper-raised) 50%) 0 0/10px 10px repeat-x;
+    background-position: 0 0, 5px 0;
+  }
+  #installment-tab .receipt-head .eyebrow{ color:var(--gold-strong); }
+  #installment-tab .receipt-head h2{ font-family:'Fraunces',serif; font-size:22px; margin:0; font-weight:600; }
+  #installment-tab .receipt-body{ padding:26px 26px 22px; }
+
+  #installment-tab .line{
+    display:flex; justify-content:space-between; align-items:baseline; font-family:'IBM Plex Mono',monospace;
+    font-size:14px; padding:8px 0; border-bottom:1px dotted var(--rule); gap:12px;
+  }
+  #installment-tab .line .desc{ color:var(--ink-soft); }
+  #installment-tab .line .amt{ color:var(--ink); font-weight:500; white-space:nowrap; }
+  #installment-tab .line.negative .amt{ color:var(--rust); }
+  #installment-tab .line.total{ border-bottom:none; border-top:2px solid var(--ink); margin-top:6px; padding-top:14px; font-size:17px; }
+  #installment-tab .line.total .desc{ color:var(--ink); font-weight:700; font-family:'Fraunces',serif; font-size:16px; }
+  #installment-tab .line.total .amt{ font-weight:700; font-size:19px; }
+
+  #installment-tab .installments{ margin-top:22px; display:flex; flex-direction:column; gap:10px; }
+  #installment-tab .inst-card{
+    display:flex; align-items:center; justify-content:space-between; padding:13px 15px;
+    border-radius:10px; border:1px solid var(--rule); background:var(--paper);
+  }
+  #installment-tab .inst-card .inst-left{ display:flex; align-items:center; gap:11px; }
+  #installment-tab .inst-badge{
+    width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600;
+    background:var(--paper-dim); color:var(--ink-soft); border:1px solid var(--rule); flex-shrink:0;
+  }
+  #installment-tab .inst-card.paid{ background:var(--sage-soft); border-color:var(--sage-line); }
+  #installment-tab .inst-card.paid .inst-badge{ background:var(--sage); color:var(--paper-raised); border-color:var(--sage); }
+  #installment-tab .inst-card.due{ background:var(--gold-soft); border-color:var(--mid-line); }
+  #installment-tab .inst-card.due .inst-badge{ background:var(--gold); color:var(--paper-raised); border-color:var(--gold); }
+  #installment-tab .inst-title{ font-size:13.5px; font-weight:600; color:var(--ink); }
+  #installment-tab .inst-sub{ font-size:11.5px; color:var(--ink-faint); margin-top:1px; }
+  #installment-tab .inst-amt{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:14.5px; }
+  #installment-tab .status-tag{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em;
+    padding:2px 8px; border-radius:20px; font-weight:600;
+  }
+  #installment-tab .status-tag.paid{ background:var(--sage); color:var(--paper-raised); }
+  #installment-tab .status-tag.due{ background:var(--gold); color:var(--paper-raised); }
+  #installment-tab .status-tag.upcoming{ background:var(--rule); color:var(--ink-soft); }
+
+  #installment-tab .track-panel{ margin-top:22px; padding-top:20px; border-top:1px solid var(--rule); }
+  #installment-tab .track-row{ display:flex; gap:12px; margin-bottom:14px; }
+  #installment-tab .track-row .field-group{ flex:1; margin-bottom:0; }
+
+  #installment-tab .progress-bar-outer{
+    height:9px; border-radius:6px; background:var(--paper-dim); overflow:hidden; margin:10px 0 4px; border:1px solid var(--rule);
+  }
+  #installment-tab .progress-bar-inner{
+    height:100%; background:linear-gradient(90deg, var(--sage), var(--gold)); border-radius:6px; transition:width .3s ease;
+  }
+  #installment-tab .progress-label{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-faint); }
+
+  #installment-tab .balance-callout{ margin-top:18px; padding:16px 18px; border-radius:10px; background:var(--rust-soft); border:1px solid var(--rust-line); }
+  #installment-tab .balance-callout.settled{ background:var(--sage-soft); border-color:var(--sage-line); }
+  #installment-tab .balance-callout .bc-label{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--rust); font-weight:600; margin-bottom:4px;
+  }
+  #installment-tab .balance-callout.settled .bc-label{ color:var(--sage); }
+  #installment-tab .balance-callout .bc-amt{ font-family:'Fraunces',serif; font-size:26px; font-weight:700; color:var(--ink); }
+  #installment-tab .balance-callout .bc-note{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
+
+  #installment-tab .custom-row{ display:flex; align-items:center; gap:10px; margin-top:8px; }
+  #installment-tab .custom-row input{ max-width:140px; }
+  #installment-tab .custom-row span{ font-size:13px; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<div id="toast-wrap"></div>
+
+<div class="wrap">
+  <div class="masthead">
+    <div class="theme-switch">
+      <span id="theme-icon"></span>
+      <input type="checkbox" id="theme-checkbox" class="sr-only" style="position:absolute;opacity:0;">
+      <label for="theme-checkbox" class="theme-toggle"></label>
+    </div>
+    <p class="kicker">Academic &amp; Fee Toolkit</p>
+    <h1>Student Ledger</h1>
+    <p>Two worksheets, one desk: work out your CGPA, or your tuition installments.</p>
+  </div>
+
+  <nav class="tab-nav">
+    <button type="button" class="tab-btn active" data-tab="cgpa-tab">CGPA Calculator</button>
+    <button type="button" class="tab-btn" data-tab="installment-tab">Installment Calculator</button>
+  </nav>
+
+  <div id="cgpa-tab" class="tab-content active">
+
+  <div class="sheet">
+    <h2>Current Standing</h2>
+    <p class="sub">Optional — leave blank if this is your first trimester.</p>
+    <div class="grid cols-3">
+      <div>
+        <label for="current-cgpa">CGPA</label>
+        <input type="number" id="current-cgpa" step="0.01" min="0.00" max="4.00" placeholder="≤ 4.00">
+        <p id="cgpa-error" class="err"></p>
+      </div>
+      <div>
+        <label for="completed-credits">Attempted Credits</label>
+        <input type="number" id="completed-credits" step="0.5" min="0" placeholder="incl. F grades">
+        <p id="attempted-credits-error" class="err"></p>
+      </div>
+      <div>
+        <label for="completed-earned-credits">Completed Credits</label>
+        <input type="number" id="completed-earned-credits" step="0.5" min="0" placeholder="e.g., 85">
+        <p id="earned-credits-error" class="err"></p>
+      </div>
+    </div>
+    <p id="credits-error" class="err" style="text-align:center;"></p>
+  </div>
+
+  <div class="sheet">
+    <h2>This Trimester's Courses</h2>
+    <p class="sub">Add each course with its credit hours and expected grade.</p>
+    <form id="add-course-form" class="grid cols-3">
+      <div>
+        <label for="course-credit">Credit Hours</label>
+        <select id="course-credit">
+          <option value="" selected disabled>Select credit</option>
+          <option value="3">3 Credits</option>
+          <option value="2">2 Credits</option>
+          <option value="1">1 Credit</option>
+        </select>
+      </div>
+      <div>
+        <label for="course-grade">Expected Grade</label>
+        <select id="course-grade">
+          <option value="" selected disabled>Select grade</option>
+          <option value="4.00">A (4.00)</option>
+          <option value="3.67">A- (3.67)</option>
+          <option value="3.33">B+ (3.33)</option>
+          <option value="3.00">B (3.00)</option>
+          <option value="2.67">B- (2.67)</option>
+          <option value="2.33">C+ (2.33)</option>
+          <option value="2.00">C (2.00)</option>
+          <option value="1.67">C- (1.67)</option>
+          <option value="1.33">D+ (1.33)</option>
+          <option value="1.00">D (1.00)</option>
+          <option value="0.00">F (0.00)</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-ink"><i data-lucide="plus"></i>Add Course</button>
+    </form>
+  </div>
+
+  <div class="sheet">
+    <h2>Retake Courses <span style="font-weight:400; color:var(--ink-faint); font-size:.85rem;">(optional)</span></h2>
+    <p class="sub">Improving a past grade or clearing an F.</p>
+    <form id="add-retake-form" class="grid cols-4">
+      <div>
+        <label for="retake-credit">Credits</label>
+        <select id="retake-credit">
+          <option value="" selected disabled>Select</option>
+          <option value="3">3</option><option value="2">2</option><option value="1">1</option>
+        </select>
+      </div>
+      <div>
+        <label for="retake-old-grade">Old Grade</label>
+        <select id="retake-old-grade">
+          <option value="" selected disabled>Select</option>
+          <option value="3.67">A- (3.67)</option><option value="3.33">B+ (3.33)</option>
+          <option value="3.00">B (3.00)</option><option value="2.67">B- (2.67)</option>
+          <option value="2.33">C+ (2.33)</option><option value="2.00">C (2.00)</option>
+          <option value="1.67">C- (1.67)</option><option value="1.33">D+ (1.33)</option>
+          <option value="1.00">D (1.00)</option><option value="0.00">F (0.00)</option>
+        </select>
+      </div>
+      <div>
+        <label for="retake-new-grade">New Grade</label>
+        <select id="retake-new-grade">
+          <option value="" selected disabled>Select</option>
+          <option value="4.00">A (4.00)</option><option value="3.67">A- (3.67)</option>
+          <option value="3.33">B+ (3.33)</option><option value="3.00">B (3.00)</option>
+          <option value="2.67">B- (2.67)</option><option value="2.33">C+ (2.33)</option>
+          <option value="2.00">C (2.00)</option><option value="1.67">C- (1.67)</option>
+          <option value="1.33">D+ (1.33)</option><option value="1.00">D (1.00)</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-outline"><i data-lucide="repeat"></i>Add Retake</button>
+    </form>
+  </div>
+
+  <div id="course-list"></div>
+
+  <div class="btn-row">
+    <button id="reset-all" class="btn btn-outline"><i data-lucide="rotate-ccw"></i>Reset</button>
+    <button id="calculate-cgpa" class="btn btn-main"><i data-lucide="calculator"></i>Calculate CGPA</button>
+  </div>
+  <p id="calc-error" class="err" style="text-align:center; display:none;"></p>
+
+  <div id="result">
+    <div id="result-good" class="result-sheet good" style="display:none;">
+      <h3 id="good-title" class="verdict">Excellent standing</h3>
+      <div class="stamp-row">
+        <div class="stamp"><span class="num" id="cgpa-good">0.00</span><span class="lbl">New CGPA</span></div>
+        <div class="stamp-detail">
+          <div>Trimester GPA: <b id="tgpa-good">0.00</b></div>
+          <div>Attempted (total): <span id="total-credits-good">0</span></div>
+          <div>Completed (total): <span id="total-earned-credits-good">0</span></div>
+          <div>This trimester: <span id="trimester-credits-good">0</span> cr</div>
+        </div>
+      </div>
+      <div class="planner">
+        <p>With a <input type="number" id="future-gpa-good" step="0.01" min="0" max="4.00" placeholder="GPA"> GPA on
+        <input type="number" id="future-credits-good" min="0" step="1" placeholder="Cr."> credits next trimester,
+        my CGPA becomes <span class="answer" id="future-cgpa-good">__</span></p>
+        <div class="target-grid">
+          <div><label for="target-cgpa-good">Target CGPA</label><input type="number" id="target-cgpa-good" step="0.01" min="0" max="4.00" placeholder="e.g., 3.75"><p id="target-cgpa-good-error" class="err"></p></div>
+          <div><label for="target-credits-good">Next Trimester Credits</label><input type="number" id="target-credits-good" min="0" step="0.5" placeholder="e.g., 9"><p id="target-credits-good-error" class="err"></p></div>
+        </div>
+        <div id="target-result-good" class="target-out" style="display:none;">
+          <p style="opacity:.75;">You'll need a GPA of</p>
+          <p class="big" id="required-gpa-good"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="result-mid" class="result-sheet mid" style="display:none;">
+      <h3 id="mid-title" class="verdict">Keep pushing</h3>
+      <div class="stamp-row">
+        <div class="stamp"><span class="num" id="cgpa-mid">0.00</span><span class="lbl">New CGPA</span></div>
+        <div class="stamp-detail">
+          <div>Trimester GPA: <b id="tgpa-mid">0.00</b></div>
+          <div>Attempted (total): <span id="total-credits-mid">0</span></div>
+          <div>Completed (total): <span id="total-earned-credits-mid">0</span></div>
+          <div>This trimester: <span id="trimester-credits-mid">0</span> cr</div>
+        </div>
+      </div>
+      <div class="planner">
+        <p>With a <input type="number" id="future-gpa-mid" step="0.01" min="0" max="4.00" placeholder="GPA"> GPA on
+        <input type="number" id="future-credits-mid" min="0" step="1" placeholder="Cr."> credits next trimester,
+        my CGPA becomes <span class="answer" id="future-cgpa-mid">__</span></p>
+        <div class="target-grid">
+          <div><label for="target-cgpa-mid">Target CGPA</label><input type="number" id="target-cgpa-mid" step="0.01" min="0" max="4.00" placeholder="e.g., 3.00"><p id="target-cgpa-mid-error" class="err"></p></div>
+          <div><label for="target-credits-mid">Next Trimester Credits</label><input type="number" id="target-credits-mid" min="0" step="0.5" placeholder="e.g., 12"><p id="target-credits-mid-error" class="err"></p></div>
+        </div>
+        <div id="target-result-mid" class="target-out" style="display:none;">
+          <p style="opacity:.75;">You'll need a GPA of</p>
+          <p class="big" id="required-gpa-mid"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="result-low" class="result-sheet low" style="display:none;">
+      <h3 id="low-title" class="verdict">On probation</h3>
+      <div class="stamp-row">
+        <div class="stamp"><span class="num" id="cgpa-low">0.00</span><span class="lbl">New CGPA</span></div>
+        <div class="stamp-detail">
+          <div>Trimester GPA: <b id="tgpa-low">0.00</b></div>
+          <div>Attempted (total): <span id="total-credits-low">0</span></div>
+          <div>Completed (total): <span id="total-earned-credits-low">0</span></div>
+          <div>This trimester: <span id="trimester-credits-low">0</span> cr</div>
+        </div>
+      </div>
+      <div class="planner">
+        <p>With a <input type="number" id="future-gpa-low" step="0.01" min="0" max="4.00" placeholder="GPA"> GPA on
+        <input type="number" id="future-credits-low" min="0" step="1" placeholder="Cr."> credits next trimester,
+        my CGPA becomes <span class="answer" id="future-cgpa-low">__</span></p>
+        <p style="margin-top:1rem; opacity:.85;">Recovery plan — credits needed next trimester to clear a 2.00 CGPA:</p>
+        <div class="target-grid" style="grid-template-columns:1fr;">
+          <div><label for="next-credits">Next Trimester Credits</label><input type="number" id="next-credits" min="0" step="0.5" placeholder="e.g., 9"><p id="next-credits-error" class="err"></p></div>
+        </div>
+        <div id="recovery-result" class="target-out" style="display:none;">
+          <p style="opacity:.75;">Required GPA</p>
+          <p class="big" id="required-gpa"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- /#cgpa-tab -->
+
+  <div id="installment-tab" class="tab-content">
+    <div class="inst-grid">
+      <!-- LEFT: FORM -->
+      <div class="form-col">
+
+        <div class="card">
+          <div class="section-title"><span class="section-num">01</span> Per-credit fee</div>
+          <p class="section-hint">Standard rate runs between 5,525 and 6,500 per credit. Pick a preset or set your own.</p>
+          <div class="pill-row" id="creditFeePills">
+            <button type="button" class="pill" data-val="5525">৳5,525</button>
+            <button type="button" class="pill" data-val="6500">৳6,500</button>
+            <button type="button" class="pill" data-val="custom">Custom</button>
+          </div>
+          <div class="sub-panel" id="creditFeeCustomPanel" style="display:none;">
+            <label class="field-label">Enter your per-credit rate</label>
+            <input type="number" id="creditFeeCustom" class="inline-input" placeholder="e.g. 5800" min="0">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title"><span class="section-num">02</span> Credits taken</div>
+          <p class="section-hint">Total number of credits you're registering for this term.</p>
+          <input type="number" id="creditsTaken" class="inline-input" placeholder="e.g. 12" min="0" value="12">
+        </div>
+
+        <div class="card">
+          <div class="section-title"><span class="section-num">03</span> Semester / trimester fee</div>
+          <p class="section-hint">A flat fee added on top — no waiver or scholarship applies here.</p>
+          <div class="pill-row" id="termFeePills">
+            <button type="button" class="pill" data-val="6500">Trimester · ৳6,500</button>
+            <button type="button" class="pill" data-val="9750">Semester · ৳9,750</button>
+            <button type="button" class="pill" data-val="custom">Custom</button>
+          </div>
+          <div class="sub-panel" id="termFeeCustomPanel" style="display:none;">
+            <label class="field-label">Enter your term fee</label>
+            <input type="number" id="termFeeCustom" class="inline-input" placeholder="e.g. 8000" min="0">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title"><span class="section-num">04</span> Waiver or scholarship</div>
+          <p class="section-hint">Applies only to the credit fee subtotal. Choose one — they don't stack.</p>
+          <div class="discount-groups">
+            <div>
+              <div class="discount-group-label">Waiver</div>
+              <div class="pill-row" id="waiverPills">
+                <button type="button" class="pill" data-val="0.25">25%</button>
+                <button type="button" class="pill" data-val="0.5">50%</button>
+              </div>
+            </div>
+            <div>
+              <div class="discount-group-label">Scholarship</div>
+              <div class="pill-row" id="scholarshipPills">
+                <button type="button" class="pill" data-val="0.25">25%</button>
+                <button type="button" class="pill" data-val="0.5">50%</button>
+                <button type="button" class="pill" data-val="1">100%</button>
+              </div>
+            </div>
+            <div>
+              <div class="discount-group-label">Other</div>
+              <div class="pill-row" id="discountOtherPills">
+                <button type="button" class="pill active" data-val="0">None</button>
+                <button type="button" class="pill" data-val="custom">Custom %</button>
+              </div>
+              <div class="sub-panel" id="discountCustomPanel" style="display:none;">
+                <label class="field-label">Enter discount percentage</label>
+                <div class="custom-row">
+                  <input type="number" id="discountCustom" placeholder="e.g. 35" min="0" max="100">
+                  <span>%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title"><span class="section-num">05</span> Payments made so far</div>
+          <p class="section-hint">Tell us where you are in the installment plan so we can work out your balance.</p>
+          <div class="track-row">
+            <div class="field-group">
+              <label class="field-label">Installments given so far</label>
+              <select id="installmentsGiven">
+                <option value="0">None yet</option>
+                <option value="1">1st installment</option>
+                <option value="2">Up to 2nd installment</option>
+                <option value="3">All 3 (fully paid)</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Total amount paid already</label>
+              <input type="number" id="amountPaid" placeholder="e.g. 40000" min="0" value="0">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: RECEIPT -->
+      <div class="receipt-col">
+        <div class="receipt">
+          <div class="receipt-head">
+            <div class="eyebrow">Statement</div>
+            <h2>Your fee breakdown</h2>
+          </div>
+          <div class="receipt-body">
+            <div class="line"><span class="desc">Per-credit fee</span><span class="amt" id="outCreditFee">৳0</span></div>
+            <div class="line"><span class="desc">Credits taken</span><span class="amt" id="outCredits">0</span></div>
+            <div class="line"><span class="desc">Credit fee subtotal</span><span class="amt" id="outSubtotal">৳0</span></div>
+            <div class="line negative"><span class="desc" id="outDiscountLabel">Discount</span><span class="amt" id="outDiscountAmt">−৳0</span></div>
+            <div class="line"><span class="desc">Net credit fee</span><span class="amt" id="outNetCredit">৳0</span></div>
+            <div class="line"><span class="desc" id="outTermLabel">Term fee</span><span class="amt" id="outTermFee">৳0</span></div>
+            <div class="line total"><span class="desc">Total payable</span><span class="amt" id="outTotal">৳0</span></div>
+
+            <div class="installments" id="installmentList"></div>
+
+            <div class="track-panel">
+              <div class="progress-label">
+                <span>Paid</span>
+                <span id="progressPct">0%</span>
+              </div>
+              <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar" style="width:0%"></div></div>
+              <div class="progress-label">
+                <span id="progressPaidAmt">৳0 paid</span>
+                <span id="progressTotalAmt">of ৳0</span>
+              </div>
+
+              <div class="balance-callout" id="balanceCallout">
+                <div class="bc-label" id="bcLabel">Balance due</div>
+                <div class="bc-amt" id="bcAmt">৳0</div>
+                <div class="bc-note" id="bcNote">Complete step 1–4 to see your figures.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /#installment-tab -->
+
+  <footer><p>Figures on the Tuition Ledger are estimates for planning purposes — confirm final amounts with your accounts office.</p></footer>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const getEl = id => document.getElementById(id);
+  const body = document.body;
+  const themeToggle = getEl('theme-checkbox');
+  const themeIcon = getEl('theme-icon');
+
+  const currentCgpaInput = getEl('current-cgpa');
+  const completedCreditsInput = getEl('completed-credits');
+  const completedEarnedCreditsInput = getEl('completed-earned-credits');
+  const addCourseForm = getEl('add-course-form');
+  const courseCreditEl = getEl('course-credit');
+  const courseGradeEl = getEl('course-grade');
+  const addRetakeForm = getEl('add-retake-form');
+  const retakeCreditEl = getEl('retake-credit');
+  const retakeOldGradeEl = getEl('retake-old-grade');
+  const retakeNewGradeEl = getEl('retake-new-grade');
+  const courseListContainer = getEl('course-list');
+  const calculateBtn = getEl('calculate-cgpa');
+  const resetBtn = getEl('reset-all');
+  const cgpaErrorEl = getEl('cgpa-error');
+  const attemptedCreditsErrorEl = getEl('attempted-credits-error');
+  const earnedCreditsErrorEl = getEl('earned-credits-error');
+  const calcErrorEl = getEl('calc-error');
+  const creditsErrorEl = getEl('credits-error');
+  const errorPlaceholders = document.querySelectorAll('.err');
+  const resultCards = { good: getEl('result-good'), mid: getEl('result-mid'), low: getEl('result-low') };
+  const allResultCards = document.querySelectorAll('.result-sheet');
+
+  let courses = [];
+  let calculationCache = { finalCgpa: 0, totalGpaCredits: 0, currentTotalPoints: 0, totalCompletedCredits: 0 };
+
+  const showNotification = (message, type = 'success') => {
+    const container = document.getElementById('toast-wrap');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    const icon = { error: 'alert-circle', info: 'info', warning: 'alert-triangle' }[type] || 'check-circle';
+    toast.innerHTML = `<i data-lucide="${icon}"></i><span>${message}</span>`;
+    container.appendChild(toast);
+    if (window.lucide) lucide.createIcons();
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      toast.addEventListener('transitionend', () => toast.remove());
+    }, 3000);
+  };
+
+  const updateTheme = (isDark) => {
+    body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    if (themeToggle) themeToggle.checked = isDark;
+    localStorage.setItem('cgpa-theme', isDark ? 'dark' : 'light');
+    themeIcon.innerHTML = isDark
+      ? '<i data-lucide="moon"></i>'
+      : '<i data-lucide="sun"></i>';
+    if (window.lucide) lucide.createIcons();
+  };
+  const initializeTheme = () => {
+    const saved = localStorage.getItem('cgpa-theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    updateTheme(saved ? saved === 'dark' : prefersDark);
+  };
+  if (themeToggle) themeToggle.addEventListener('change', () => updateTheme(themeToggle.checked));
+
+  const saveState = () => {
+    const state = {
+      courses,
+      currentCgpa: currentCgpaInput.value,
+      completedCredits: completedCreditsInput.value,
+      completedEarnedCredits: completedEarnedCreditsInput.value
+    };
+    localStorage.setItem('cgpaCalculatorState', JSON.stringify(state));
+  };
+  const loadState = () => {
+    const saved = localStorage.getItem('cgpaCalculatorState');
+    if (saved) {
+      const { courses: savedCourses, currentCgpa, completedCredits, completedEarnedCredits } = JSON.parse(saved);
+      courses = savedCourses || [];
+      currentCgpaInput.value = currentCgpa || '';
+      completedCreditsInput.value = completedCredits || '';
+      completedEarnedCreditsInput.value = completedEarnedCredits || '';
+      renderCourses();
+    }
+  };
+
+  const animateValue = (el, endValue, isFloat = true) => {
+    let startValue = 0;
+    const duration = 900;
+    const startTime = performance.now();
+    const existing = el.textContent.trim();
+    if (existing && !isNaN(parseFloat(existing))) startValue = parseFloat(existing);
+    function step(t) {
+      const progress = Math.min((t - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      let val = startValue + (endValue - startValue) * eased;
+      if (isNaN(val) || !isFinite(val)) val = endValue;
+      if (progress < 1) {
+        el.textContent = isFloat ? val.toFixed(2) : Math.round(val);
+        requestAnimationFrame(step);
+      } else {
+        el.textContent = isFloat ? endValue.toFixed(2) : (endValue % 1 === 0 ? endValue.toFixed(0) : endValue.toFixed(2));
+      }
+    }
+    requestAnimationFrame(step);
+  };
+
+  const triggerConfetti = () => {
+    for (let i = 0; i < 40; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti-piece';
+      const colors = ['#a9812f', '#4f6bd6', '#33532c', '#8a691f'];
+      c.style.background = colors[Math.floor(Math.random() * colors.length)];
+      c.style.left = `${Math.random() * 100}%`;
+      c.style.animation = `fall ${1.4 + Math.random() * 1.8}s ${Math.random() * .6}s linear forwards`;
+      document.body.appendChild(c);
+    }
+    const kf = `@keyframes fall { to { transform: translateY(100vh) rotate(${Math.random()*600}deg); opacity:0; } }`;
+    const sheet = document.createElement('style');
+    sheet.innerText = kf;
+    document.head.appendChild(sheet);
+    setTimeout(() => {
+      document.querySelectorAll('.confetti-piece').forEach(e => e.remove());
+      sheet.remove();
+    }, 3600);
+  };
+
+  const gradeMap = { "4.00":"A","3.67":"A-","3.33":"B+","3.00":"B","2.67":"B-","2.33":"C+","2.00":"C","1.67":"C-","1.33":"D+","1.00":"D","0.00":"F" };
+  const getGradeLetter = (g) => {
+    const n = typeof g === 'number' ? g : parseFloat(g);
+    if (isNaN(n)) return '';
+    return gradeMap[n.toFixed(2)] || '';
+  };
+
+  const renderCourses = () => {
+    courseListContainer.innerHTML = '';
+    if (courses.length === 0) {
+      courseListContainer.innerHTML = `<div class="empty-row">No courses added yet — add one above to begin.</div>`;
+      return;
+    }
+    courses.forEach((course, index) => {
+      const row = document.createElement('div');
+      let cls = 'course-row';
+      const gradeRaw = course.type === 'new' ? course.grade : course.newGrade;
+      const gradeNum = typeof gradeRaw === 'number' ? gradeRaw : parseFloat(gradeRaw);
+      const gradeVal = isNaN(gradeNum) ? 'N/A' : gradeNum.toFixed(2);
+      const gradeLetter = getGradeLetter(gradeNum);
+      let html = '';
+      if (course.type === 'new') {
+        cls += ' new';
+        html = `<div class="meta">${course.credit} credits</div><div class="flow"><span class="grade">${gradeLetter} <span style="color:var(--ink-faint); font-weight:400;">(${gradeVal})</span></span></div>`;
+      } else {
+        cls += ' retake';
+        const oldL = getGradeLetter(course.oldGrade);
+        const newL = getGradeLetter(course.newGrade);
+        const newNum = typeof course.newGrade === 'number' ? course.newGrade : parseFloat(course.newGrade);
+        const newVal = isNaN(newNum) ? 'N/A' : newNum.toFixed(2);
+        html = `<div class="meta">${course.credit} credits &middot; retake</div><div class="flow"><span class="strike">${oldL}</span><i data-lucide="arrow-right" style="width:14px;height:14px;color:var(--ink-faint);"></i><span class="grade">${newL} <span style="color:var(--ink-faint); font-weight:400;">(${newVal})</span></span></div>`;
+      }
+      row.className = cls;
+      row.style.setProperty('--stagger-delay', `${index * 60}ms`);
+      row.innerHTML = html + `<button class="remove-btn" data-index="${index}"><i data-lucide="trash-2" style="width:16px;height:16px;"></i></button>`;
+      courseListContainer.appendChild(row);
+    });
+    if (window.lucide) lucide.createIcons();
+  };
+
+  const hideResults = () => {
+    allResultCards.forEach(c => { c.style.display = 'none'; });
+    errorPlaceholders.forEach(el => { el.textContent = ''; el.classList.remove('on'); });
+    calcErrorEl.textContent = ''; creditsErrorEl.textContent = '';
+    calcErrorEl.style.display = 'none'; creditsErrorEl.style.display = 'none';
+  };
+
+  const validateAcademicStanding = () => {
+    const cgpa = parseFloat(currentCgpaInput.value);
+    const attempted = parseFloat(completedCreditsInput.value);
+    const earned = parseFloat(completedEarnedCreditsInput.value);
+    let isEarnedInvalid = false;
+    if (!isNaN(earned) && !isNaN(attempted) && earned > attempted) isEarnedInvalid = true;
+    let isCgpaInvalid = false;
+    if (!isNaN(cgpa) && !isNaN(attempted) && !isNaN(earned)) {
+      if ((cgpa * attempted) > (earned * 4.0)) isCgpaInvalid = true;
+    }
+    earnedCreditsErrorEl.textContent = isEarnedInvalid ? "That doesn't add up." : "";
+    earnedCreditsErrorEl.classList.toggle('on', isEarnedInvalid);
+    cgpaErrorEl.textContent = isCgpaInvalid ? "That doesn't add up." : "";
+    cgpaErrorEl.classList.toggle('on', isCgpaInvalid);
+    const isInvalid = isEarnedInvalid || isCgpaInvalid;
+    calculateBtn.disabled = isInvalid;
+    calculateBtn.style.opacity = isInvalid ? .5 : 1;
+    calculateBtn.style.cursor = isInvalid ? 'not-allowed' : 'pointer';
+    return !isInvalid;
+  };
+
+  const handleCalculation = () => {
+    if (!validateAcademicStanding()) return;
+    hideResults();
+    let hasError = false;
+    const currentCgpaVal = currentCgpaInput.value.trim();
+    const currentCgpa = parseFloat(currentCgpaVal);
+    if (currentCgpaVal && (isNaN(currentCgpa) || currentCgpa > 4.0 || currentCgpa < 0)) {
+      cgpaErrorEl.textContent = "Must be 0.00–4.00."; cgpaErrorEl.classList.add('on'); hasError = true;
+    }
+    const initialAttemptedCreditsVal = completedCreditsInput.value.trim();
+    const initialEarnedCreditsVal = completedEarnedCreditsInput.value.trim();
+    const initialAttemptedCredits = parseFloat(initialAttemptedCreditsVal);
+    const initialEarnedCredits = parseFloat(initialEarnedCreditsVal);
+    const hasInitialStandingAttempt = currentCgpaVal !== '' || initialAttemptedCreditsVal !== '' || initialEarnedCreditsVal !== '';
+    const isInitialStandingComplete = currentCgpaVal !== '' && !isNaN(currentCgpa) && currentCgpa >= 0 && currentCgpa <= 4.0 &&
+      initialAttemptedCreditsVal !== '' && !isNaN(initialAttemptedCredits) && initialAttemptedCredits >= 0 &&
+      initialEarnedCreditsVal !== '' && !isNaN(initialEarnedCredits) && initialEarnedCredits >= 0;
+
+    if (hasInitialStandingAttempt && !isInitialStandingComplete) {
+      if (currentCgpaVal === '') { cgpaErrorEl.textContent = "Required."; cgpaErrorEl.classList.add('on'); hasError = true; }
+      else if (isNaN(currentCgpa) || currentCgpa < 0 || currentCgpa > 4.0) { cgpaErrorEl.textContent = "Must be 0.00–4.00."; cgpaErrorEl.classList.add('on'); hasError = true; }
+      if (initialAttemptedCreditsVal === '' || isNaN(initialAttemptedCredits) || initialAttemptedCredits < 0) { attemptedCreditsErrorEl.textContent = "Required, ≥ 0."; attemptedCreditsErrorEl.classList.add('on'); hasError = true; }
+      if (initialEarnedCreditsVal === '' || isNaN(initialEarnedCredits) || initialEarnedCredits < 0) { earnedCreditsErrorEl.textContent = "Required, ≥ 0."; earnedCreditsErrorEl.classList.add('on'); hasError = true; }
+    } else if (isInitialStandingComplete && initialEarnedCredits > initialAttemptedCredits) {
+      creditsErrorEl.textContent = "Completed credits can't exceed attempted credits.";
+      creditsErrorEl.style.display = 'block'; hasError = true;
+    }
+
+    if (courses.length === 0) {
+      if (!hasError) { calcErrorEl.textContent = "Add at least one course first."; calcErrorEl.style.display = 'block'; }
+      hasError = true;
+    }
+    const trimesterCredits = courses.reduce((t, c) => t + c.credit, 0);
+    if (!hasError && courses.length > 0 && trimesterCredits < 6) {
+      showNotification("This trimester has less than 6 credits.", 'warning');
+    }
+    const hasRetakes = courses.some(c => c.type === 'retake');
+    if (!hasError && hasRetakes && !isInitialStandingComplete) {
+      calcErrorEl.textContent = hasInitialStandingAttempt ? "Complete your Current Standing to include retakes." : "Enter Current Standing to add retake courses.";
+      calcErrorEl.style.display = 'block'; hasError = true;
+    }
+    if (hasError) return;
+    displayResults(calculateResults());
+  };
+
+  const calculateResults = () => {
+    const currentCgpa = parseFloat(currentCgpaInput.value) || 0;
+    const initialAttemptedCredits = parseFloat(completedCreditsInput.value) || 0;
+    const initialEarnedCredits = parseFloat(completedEarnedCreditsInput.value) || 0;
+    const hasInitialStanding = currentCgpaInput.value.trim() !== '' && !isNaN(parseFloat(currentCgpaInput.value)) &&
+      completedCreditsInput.value.trim() !== '' && !isNaN(initialAttemptedCredits) && initialAttemptedCredits >= 0 &&
+      completedEarnedCreditsInput.value.trim() !== '' && !isNaN(initialEarnedCredits) && initialEarnedCredits >= 0;
+    const initialPoints = currentCgpa * initialAttemptedCredits;
+    let totalPoints = initialPoints;
+    let totalGpaCredits = initialAttemptedCredits;
+    let totalCompletedCredits = initialEarnedCredits;
+    let trimesterPoints = 0, trimesterGpaCredits = 0, trimesterCompletedCredits = 0;
+    courses.forEach(course => {
+      const credit = course.credit;
+      trimesterGpaCredits += credit;
+      if (course.type === 'new') {
+        const grade = course.grade;
+        trimesterPoints += credit * grade;
+        totalPoints += credit * grade;
+        totalGpaCredits += credit;
+        if (grade > 0) { trimesterCompletedCredits += credit; totalCompletedCredits += credit; }
+      } else {
+        const oldGrade = course.oldGrade, newGrade = course.newGrade;
+        trimesterPoints += credit * newGrade;
+        if (oldGrade === 0 && newGrade > 0) trimesterCompletedCredits += credit;
+        if (hasInitialStanding) {
+          totalPoints = totalPoints - (oldGrade * credit) + (newGrade * credit);
+          if (oldGrade === 0 && newGrade > 0) totalCompletedCredits += credit;
+          else if (oldGrade > 0 && newGrade === 0) totalCompletedCredits -= credit;
+        }
+      }
+    });
+    const finalCgpa = totalGpaCredits > 0 ? totalPoints / totalGpaCredits : 0;
+    const trimesterGpa = trimesterGpaCredits > 0 ? trimesterPoints / trimesterGpaCredits : 0;
+    totalCompletedCredits = Math.max(0, totalCompletedCredits);
+    calculationCache = { finalCgpa, totalGpaCredits, currentTotalPoints: totalPoints, totalCompletedCredits };
+    return { finalCgpa, trimesterGpa, totalGpaCredits, trimesterGpaCredits, trimesterCompletedCredits, totalCompletedCredits };
+  };
+
+  const displayResults = ({ finalCgpa, trimesterGpa, totalGpaCredits, trimesterGpaCredits, trimesterCompletedCredits, totalCompletedCredits }) => {
+    finalCgpa = parseFloat(finalCgpa.toFixed(2));
+    let standing;
+    if (finalCgpa >= 3.0) {
+      standing = 'good';
+      const t = getEl('good-title');
+      if (finalCgpa >= 3.8) t.textContent = "Outstanding record";
+      else if (finalCgpa >= 3.5) t.textContent = "Waiver territory";
+      else if (finalCgpa >= 3.2) t.textContent = "Comfortably in the clear";
+      else t.textContent = "Hold the line at 3.00";
+      if (finalCgpa >= 3.8 && trimesterGpa >= 3.8) triggerConfetti();
+    } else if (finalCgpa >= 2.0) {
+      standing = 'mid';
+      const t = getEl('mid-title');
+      if (finalCgpa >= 2.6) t.textContent = "Comeback needed";
+      else if (finalCgpa >= 2.2) t.textContent = "In the red zone";
+      else t.textContent = "One slip from probation";
+    } else {
+      standing = 'low';
+      const t = getEl('low-title');
+      t.textContent = finalCgpa < 1.5 ? "Critical standing" : "Time to dig in";
+    }
+    getEl('result').style.display = 'block';
+    const card = resultCards[standing];
+    animateValue(getEl(`cgpa-${standing}`), Math.min(finalCgpa, 4.00), true);
+    animateValue(getEl(`tgpa-${standing}`), Math.min(trimesterGpa, 4.00), true);
+    animateValue(getEl(`total-credits-${standing}`), totalGpaCredits, totalGpaCredits % 1 !== 0);
+    animateValue(getEl(`trimester-credits-${standing}`), trimesterGpaCredits, trimesterGpaCredits % 1 !== 0);
+    animateValue(getEl(`trimester-earned-credits-${standing}`) || document.createElement('div'), trimesterCompletedCredits, trimesterCompletedCredits % 1 !== 0);
+    animateValue(getEl(`total-earned-credits-${standing}`), totalCompletedCredits, totalCompletedCredits % 1 !== 0);
+    card.style.display = 'block';
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const handleFutureCgpaCalculation = (gpaInputId, creditsInputId, resultElId) => {
+    const gpaInput = document.getElementById(gpaInputId);
+    const creditsInput = document.getElementById(creditsInputId);
+    const resultEl = document.getElementById(resultElId);
+    const futureGpa = parseFloat(gpaInput.value);
+    const futureCredits = parseFloat(creditsInput.value);
+    if (isNaN(futureGpa) || futureGpa < 0 || futureGpa > 4.00 || isNaN(futureCredits) || futureCredits <= 0) {
+      resultEl.textContent = '__'; return;
+    }
+    const { finalCgpa, totalGpaCredits } = calculationCache;
+    if (totalGpaCredits === 0 && courses.length === 0) {
+      const currentCgpa = parseFloat(currentCgpaInput.value) || 0;
+      const initialAttemptedCredits = parseFloat(completedCreditsInput.value) || 0;
+      if (initialAttemptedCredits > 0) {
+        const totalPoints = (currentCgpa * initialAttemptedCredits) + (futureGpa * futureCredits);
+        const totalCredits = initialAttemptedCredits + futureCredits;
+        resultEl.textContent = (totalCredits > 0 ? totalPoints / totalCredits : 0).toFixed(2);
+      } else {
+        resultEl.textContent = futureGpa.toFixed(2);
+      }
+    } else {
+      const totalPoints = (finalCgpa * totalGpaCredits) + (futureGpa * futureCredits);
+      const totalCredits = totalGpaCredits + futureCredits;
+      resultEl.textContent = (totalCredits > 0 ? totalPoints / totalCredits : 0).toFixed(2);
+    }
+  };
+
+  const handleTargetCalculation = (targetCgpaInput, targetCreditsInput, resultEl, gpaEl, errorEl) => {
+    const targetCgpa = parseFloat(targetCgpaInput.value);
+    const nextCredits = parseFloat(targetCreditsInput.value);
+    const targetCgpaErrorEl = targetCgpaInput.nextElementSibling;
+    errorEl.textContent = ''; errorEl.classList.remove('on');
+    if (targetCgpaErrorEl) { targetCgpaErrorEl.textContent = ''; targetCgpaErrorEl.classList.remove('on'); }
+    let creditsValid = true;
+    if (isNaN(nextCredits) || nextCredits <= 0) {
+      resultEl.style.display = 'none';
+      if (targetCreditsInput.value.trim() !== '') { errorEl.textContent = 'Credits must be positive.'; errorEl.classList.add('on'); }
+      creditsValid = false;
+    } else if (nextCredits < 6) {
+      errorEl.textContent = '(Min. 6 credits recommended)'; errorEl.classList.add('on');
+    }
+    let cgpaValid = true;
+    if (isNaN(targetCgpa) || targetCgpa > 4.00 || targetCgpa < 0.00) {
+      resultEl.style.display = 'none';
+      if (targetCgpaInput.value.trim() !== '' && targetCgpaErrorEl) { targetCgpaErrorEl.textContent = 'Must be 0.00–4.00.'; targetCgpaErrorEl.classList.add('on'); }
+      cgpaValid = false;
+    }
+    if (!creditsValid || !cgpaValid) return;
+    const targetTotalPoints = targetCgpa * (calculationCache.totalGpaCredits + nextCredits);
+    const requiredNextPoints = targetTotalPoints - calculationCache.currentTotalPoints;
+    const requiredGpa = requiredNextPoints / nextCredits;
+    resultEl.style.display = 'block';
+    if (requiredGpa > 4.0) gpaEl.textContent = `Not reachable (${requiredGpa.toFixed(2)})`;
+    else if (requiredGpa < 0) gpaEl.textContent = `0.00 (F) or higher`;
+    else gpaEl.textContent = requiredGpa.toFixed(2);
+  };
+
+  const handleRecoveryCalculation = (nextCreditsInput, resultEl, gpaEl, errorEl) => {
+    const nextCredits = parseFloat(nextCreditsInput.value);
+    errorEl.textContent = ''; errorEl.classList.remove('on'); resultEl.style.display = 'none';
+    if (isNaN(nextCredits) || nextCredits <= 0) {
+      if (nextCreditsInput.value.trim() !== '') { errorEl.textContent = 'Credits must be positive.'; errorEl.classList.add('on'); }
+      return;
+    }
+    if (nextCredits < 6) { errorEl.textContent = '(Min. 6 credits recommended)'; errorEl.classList.add('on'); }
+    const targetTotalPoints = 2.0 * (calculationCache.totalGpaCredits + nextCredits);
+    const requiredNextPoints = targetTotalPoints - calculationCache.currentTotalPoints;
+    const requiredGpa = requiredNextPoints / nextCredits;
+    resultEl.style.display = 'block';
+    if (requiredGpa > 4.0) gpaEl.textContent = `Not reachable (${requiredGpa.toFixed(2)})`;
+    else if (requiredGpa <= 1.0) gpaEl.textContent = 'Min. 1.00 (D)';
+    else gpaEl.textContent = requiredGpa.toFixed(2);
+  };
+
+  // --- Event listeners ---
+  [currentCgpaInput, completedCreditsInput, completedEarnedCreditsInput].forEach(el => {
+    el.addEventListener('input', () => { validateAcademicStanding(); saveState(); });
+  });
+
+  addCourseForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const c = courseCreditEl.value, g = courseGradeEl.value;
+    if (!c || !g) { showNotification("Select both credit and grade.", 'error'); return; }
+    courses.push({ type: 'new', credit: parseFloat(c), grade: parseFloat(g) });
+    renderCourses(); hideResults(); saveState();
+    showNotification('Course added.');
+    courseCreditEl.value = ""; courseGradeEl.value = "";
+  });
+
+  addRetakeForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const c = retakeCreditEl.value, oG = retakeOldGradeEl.value, nG = retakeNewGradeEl.value;
+    if (!c || !oG || !nG) { showNotification("Select all retake fields.", 'error'); return; }
+    const credit = parseFloat(c), oldGrade = parseFloat(oG), newGrade = parseFloat(nG);
+    if (oldGrade >= newGrade) { showNotification("New grade must beat the old grade.", 'error'); return; }
+    const initialAttemptedCredits = parseFloat(completedCreditsInput.value) || 0;
+    const initialEarnedCredits = parseFloat(completedEarnedCreditsInput.value) || 0;
+    if (oldGrade === 0.00) {
+      const failedCredits = initialAttemptedCredits - initialEarnedCredits;
+      const existingFRetakeCredits = courses.filter(c => c.type === 'retake' && c.oldGrade === 0.00).reduce((t, c) => t + c.credit, 0);
+      if (existingFRetakeCredits + credit > failedCredits) {
+        showNotification(`You can only retake ${failedCredits} credits of F grades (already added ${existingFRetakeCredits}).`, 'error');
+        return;
+      }
+    } else {
+      const existingNormalRetakeCredits = courses.filter(c => c.type === 'retake' && c.oldGrade > 0.00).reduce((t, c) => t + c.credit, 0);
+      if (existingNormalRetakeCredits + credit > initialEarnedCredits) {
+        showNotification(`You can only retake ${initialEarnedCredits} credits for improvement (already added ${existingNormalRetakeCredits}).`, 'error');
+        return;
+      }
+    }
+    courses.push({ type: 'retake', credit, oldGrade, newGrade });
+    renderCourses(); hideResults(); saveState();
+    showNotification('Retake added.', 'success');
+    retakeCreditEl.value = ""; retakeOldGradeEl.value = ""; retakeNewGradeEl.value = "";
+  });
+
+  courseListContainer.addEventListener('click', (e) => {
+    const btn = e.target.closest('.remove-btn');
+    if (btn) { courses.splice(parseInt(btn.dataset.index), 1); renderCourses(); hideResults(); saveState(); }
+  });
+
+  calculateBtn.addEventListener('click', handleCalculation);
+  resetBtn.addEventListener('click', () => {
+    courses = [];
+    currentCgpaInput.value = ''; completedCreditsInput.value = ''; completedEarnedCreditsInput.value = '';
+    renderCourses(); hideResults(); saveState();
+    showNotification('Worksheet cleared.', 'success');
+  });
+
+  const nextCreditsInput = getEl('next-credits');
+  nextCreditsInput.addEventListener('input', () =>
+    handleRecoveryCalculation(nextCreditsInput, getEl('recovery-result'), getEl('required-gpa'), getEl('next-credits-error')));
+
+  ['good', 'mid'].forEach(s => {
+    const tc = getEl(`target-cgpa-${s}`), tcr = getEl(`target-credits-${s}`);
+    [tc, tcr].forEach(el => el.addEventListener('input', () =>
+      handleTargetCalculation(tc, tcr, getEl(`target-result-${s}`), getEl(`required-gpa-${s}`), getEl(`target-credits-${s}-error`))));
+  });
+
+  ['good', 'mid', 'low'].forEach(s => {
+    const gpaInput = getEl(`future-gpa-${s}`), creditsInput = getEl(`future-credits-${s}`);
+    [gpaInput, creditsInput].forEach(el => el && el.addEventListener('input', () =>
+      handleFutureCgpaCalculation(`future-gpa-${s}`, `future-credits-${s}`, `future-cgpa-${s}`)));
+  });
+
+  // --- Tab switching ---
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // --- Init ---
+  initializeTheme();
+  loadState();
+  renderCourses();
+  if (window.lucide) lucide.createIcons();
+});
+</script>
+
+<script>
+// ================= Tuition Installment Ledger =================
+(function(){
+  const fmt = n => '৳' + Math.round(n).toLocaleString('en-IN');
+
+  let state = {
+    creditFee: 5525,
+    credits: 12,
+    termFee: 6500,
+    discountType: 'none', // 'waiver' | 'scholarship' | 'custom' | 'none'
+    discountRate: 0,
+    installmentsGiven: 0,
+    amountPaid: 0
+  };
+
+  function setupPillGroup(containerId, onSelect, exclusiveGroups){
+    const container = document.getElementById(containerId);
+    container.querySelectorAll('.pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        container.querySelectorAll('.pill').forEach(p => p.classList.remove('active','gold'));
+        pill.classList.add('active');
+        if(exclusiveGroups){
+          exclusiveGroups.forEach(id => {
+            if(id !== containerId){
+              document.getElementById(id).querySelectorAll('.pill').forEach(p => p.classList.remove('active','gold'));
+            }
+          });
+        }
+        onSelect(pill.dataset.val);
+      });
+    });
+  }
+
+  setupPillGroup('creditFeePills', val => {
+    const panel = document.getElementById('creditFeeCustomPanel');
+    if(val === 'custom'){
+      panel.style.display = 'block';
+      const cv = parseFloat(document.getElementById('creditFeeCustom').value) || 0;
+      state.creditFee = cv;
+    } else {
+      panel.style.display = 'none';
+      state.creditFee = parseFloat(val);
+    }
+    render();
+  });
+  document.getElementById('creditFeeCustom').addEventListener('input', e => {
+    state.creditFee = parseFloat(e.target.value) || 0;
+    render();
+  });
+  document.querySelector('#creditFeePills .pill[data-val="5525"]').classList.add('active');
+
+  document.getElementById('creditsTaken').addEventListener('input', e => {
+    state.credits = parseFloat(e.target.value) || 0;
+    render();
+  });
+
+  setupPillGroup('termFeePills', val => {
+    const panel = document.getElementById('termFeeCustomPanel');
+    if(val === 'custom'){
+      panel.style.display = 'block';
+      const cv = parseFloat(document.getElementById('termFeeCustom').value) || 0;
+      state.termFee = cv;
+    } else {
+      panel.style.display = 'none';
+      state.termFee = parseFloat(val);
+    }
+    render();
+  });
+  document.getElementById('termFeeCustom').addEventListener('input', e => {
+    state.termFee = parseFloat(e.target.value) || 0;
+    render();
+  });
+  document.querySelector('#termFeePills .pill[data-val="6500"]').classList.add('active');
+
+  const discountGroups = ['waiverPills','scholarshipPills','discountOtherPills'];
+  setupPillGroup('waiverPills', val => {
+    state.discountType = 'waiver';
+    state.discountRate = parseFloat(val);
+    document.getElementById('discountCustomPanel').style.display='none';
+    render();
+  }, discountGroups);
+  setupPillGroup('scholarshipPills', val => {
+    state.discountType = 'scholarship';
+    state.discountRate = parseFloat(val);
+    document.getElementById('discountCustomPanel').style.display='none';
+    render();
+  }, discountGroups);
+  setupPillGroup('discountOtherPills', val => {
+    const panel = document.getElementById('discountCustomPanel');
+    if(val === 'custom'){
+      state.discountType = 'custom';
+      panel.style.display = 'block';
+      const cv = parseFloat(document.getElementById('discountCustom').value) || 0;
+      state.discountRate = cv/100;
+    } else {
+      state.discountType = 'none';
+      state.discountRate = 0;
+      panel.style.display = 'none';
+    }
+    render();
+  }, discountGroups);
+  document.getElementById('discountCustom').addEventListener('input', e => {
+    state.discountRate = (parseFloat(e.target.value) || 0) / 100;
+    render();
+  });
+
+  document.getElementById('installmentsGiven').addEventListener('change', e => {
+    state.installmentsGiven = parseInt(e.target.value);
+    render();
+  });
+  document.getElementById('amountPaid').addEventListener('input', e => {
+    state.amountPaid = parseFloat(e.target.value) || 0;
+    render();
+  });
+
+  function render(){
+    const subtotal = state.creditFee * state.credits;
+    const discountAmt = subtotal * state.discountRate;
+    const netCredit = subtotal - discountAmt;
+    const total = netCredit + state.termFee;
+
+    const inst1 = total * 0.40;
+    const inst2 = total * 0.30;
+    const inst3 = total * 0.30;
+
+    document.getElementById('outCreditFee').textContent = fmt(state.creditFee);
+    document.getElementById('outCredits').textContent = state.credits;
+    document.getElementById('outSubtotal').textContent = fmt(subtotal);
+
+    let discLabel = 'Discount';
+    if(state.discountType === 'waiver') discLabel = `Waiver (${Math.round(state.discountRate*100)}%)`;
+    else if(state.discountType === 'scholarship') discLabel = `Scholarship (${Math.round(state.discountRate*100)}%)`;
+    else if(state.discountType === 'custom') discLabel = `Discount (${Math.round(state.discountRate*100)}%)`;
+    else discLabel = 'Discount (0%)';
+    document.getElementById('outDiscountLabel').textContent = discLabel;
+    document.getElementById('outDiscountAmt').textContent = '−' + fmt(discountAmt);
+
+    document.getElementById('outNetCredit').textContent = fmt(netCredit);
+    document.getElementById('outTermLabel').textContent = 'Term fee (no discount)';
+    document.getElementById('outTermFee').textContent = fmt(state.termFee);
+    document.getElementById('outTotal').textContent = fmt(total);
+
+    const installments = [
+      {n:1, label:'1st Installment', sub:'40% of total', amt:inst1},
+      {n:2, label:'2nd Installment', sub:'30% of total', amt:inst2},
+      {n:3, label:'3rd Installment', sub:'30% of total', amt:inst3},
+    ];
+    const listEl = document.getElementById('installmentList');
+    listEl.innerHTML = '';
+    installments.forEach(inst => {
+      let statusClass = 'upcoming';
+      let statusText = 'Upcoming';
+      if(inst.n <= state.installmentsGiven){
+        statusClass = 'paid';
+        statusText = 'Paid';
+      } else if(inst.n === state.installmentsGiven + 1){
+        statusClass = 'due';
+        statusText = 'Due now';
+      }
+      const cardClass = statusClass === 'upcoming' ? '' : statusClass;
+      const div = document.createElement('div');
+      div.className = 'inst-card ' + cardClass;
+      div.innerHTML = `
+        <div class="inst-left">
+          <div class="inst-badge">${inst.n}</div>
+          <div>
+            <div class="inst-title">${inst.label}</div>
+            <div class="inst-sub">${inst.sub}</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div class="inst-amt">${fmt(inst.amt)}</div>
+          <span class="status-tag ${statusClass}">${statusText}</span>
+        </div>`;
+      listEl.appendChild(div);
+    });
+
+    const pct = total > 0 ? Math.min(100, (state.amountPaid/total)*100) : 0;
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = Math.round(pct) + '%';
+    document.getElementById('progressPaidAmt').textContent = fmt(state.amountPaid) + ' paid';
+    document.getElementById('progressTotalAmt').textContent = 'of ' + fmt(total);
+
+    const expectedByNow = installments.slice(0, state.installmentsGiven).reduce((s,i)=>s+i.amt, 0);
+    const remainingTotal = Math.max(0, total - state.amountPaid);
+    const callout = document.getElementById('balanceCallout');
+    const bcLabel = document.getElementById('bcLabel');
+    const bcAmt = document.getElementById('bcAmt');
+    const bcNote = document.getElementById('bcNote');
+
+    if(total <= 0){
+      callout.className = 'balance-callout';
+      bcLabel.textContent = 'Balance due';
+      bcAmt.textContent = fmt(0);
+      bcNote.textContent = "Complete steps 1–4 to see your figures.";
+    } else if(remainingTotal <= 0){
+      callout.className = 'balance-callout settled';
+      bcLabel.textContent = 'All settled';
+      bcAmt.textContent = fmt(0);
+      bcNote.textContent = "You've paid the full amount due. No balance remaining.";
+    } else {
+      callout.className = 'balance-callout';
+      bcLabel.textContent = 'Balance remaining';
+      bcAmt.textContent = fmt(remainingTotal);
+      const diff = state.amountPaid - expectedByNow;
+      let note = '';
+      if(state.installmentsGiven < 3){
+        const nextAmt = installments[state.installmentsGiven].amt;
+        if(Math.abs(diff) < 1){
+          note = `Right on track. Next up: installment ${state.installmentsGiven+1} for ${fmt(nextAmt)}.`;
+        } else if(diff > 0){
+          note = `You've paid ${fmt(diff)} more than the ${state.installmentsGiven} installment(s) selected — that credit rolls into what's next.`;
+        } else {
+          note = `You're ${fmt(Math.abs(diff))} short of the ${state.installmentsGiven} installment(s) selected.`;
+        }
+      } else {
+        note = "Final installment stage reached — this is what's left to clear.";
+      }
+      bcNote.textContent = note;
+    }
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
