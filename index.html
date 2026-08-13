@@ -10,46 +10,46 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <style>
   :root{
-    --paper:#f7f5f0;
+    --paper:#f2f8f8;
     --paper-raised:#ffffff;
-    --ink:#1c2333;
-    --ink-soft:#4b5468;
-    --ink-faint:#8b93a6;
-    --rule:#d8d3c6;
+    --ink:#0f3a4d;
+    --ink-soft:#3e6069;
+    --ink-faint:#7f9ba0;
+    --rule:#cde3df;
     --field-bg:#ffffff;
-    --field-border:#cfc9ba;
-    --gold:#a9812f;
-    --gold-strong:#8a691f;
-    --good-bg:#eef4ea; --good-ink:#33532c; --good-line:#b7cfa9;
+    --field-border:#b7d8d2;
+    --gold:#0f8f6f;
+    --gold-strong:#0b6e56;
+    --good-bg:#e8f5ee; --good-ink:#1d6d47; --good-line:#b6dcc4;
     --mid-bg:#faf1de;  --mid-ink:#6b4a12;  --mid-line:#e3c485;
     --low-bg:#f7e9e6;  --low-ink:#7a2e22;  --low-line:#e2b3a8;
-    --shadow: 0 1px 2px rgba(28,35,51,.04), 0 12px 32px -16px rgba(28,35,51,.18);
+    --shadow: 0 1px 2px rgba(15,58,77,.05), 0 12px 32px -16px rgba(15,58,77,.20);
     --line: var(--rule);
-    --paper-dim:#f1ece1;
+    --paper-dim:#e9f2f0;
     --sage: var(--good-ink); --sage-soft: var(--good-bg); --sage-line: var(--good-line);
     --rust: var(--low-ink); --rust-soft: var(--low-bg); --rust-line: var(--low-line);
     --gold-soft: var(--mid-bg);
-    --ledger-head-bg:#1c2333; --ledger-head-text:#f7f5f0;
+    --ledger-head-bg:#0f3a4d; --ledger-head-text:#eafaf3;
     --accent-strong: var(--ink); --accent-strong-text:#ffffff;
   }
   body[data-theme="dark"]{
-    --paper:#12141b;
-    --paper-raised:#1a1d27;
-    --ink:#eceaf0;
-    --ink-soft:#a9adc0;
-    --ink-faint:#6d7288;
-    --rule:#2c3040;
-    --field-bg:#20232f;
-    --field-border:#383c4d;
-    --gold:#d7b258;
-    --gold-strong:#e7c876;
-    --good-bg:#182619; --good-ink:#a9d69a; --good-line:#31502f;
+    --paper:#0b1a1e;
+    --paper-raised:#112427;
+    --ink:#dcf1ec;
+    --ink-soft:#9dbdba;
+    --ink-faint:#5e7c7a;
+    --rule:#213a3c;
+    --field-bg:#16292c;
+    --field-border:#2b474a;
+    --gold:#31c99a;
+    --gold-strong:#5be0b8;
+    --good-bg:#0f2e22; --good-ink:#7fe0b0; --good-line:#1f5d42;
     --mid-bg:#2a2113;  --mid-ink:#e6c37c;  --mid-line:#5a4620;
     --low-bg:#2a1815;  --low-ink:#e6a290;  --low-line:#5a2c24;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 20px 40px -20px rgba(0,0,0,.6);
-    --paper-dim:#20232f;
-    --ledger-head-bg:#090b11; --ledger-head-text:#e7c876;
-    --accent-strong: var(--gold); --accent-strong-text:#171310;
+    --paper-dim:#16292c;
+    --ledger-head-bg:#03141a; --ledger-head-text:#5be0b8;
+    --accent-strong: var(--gold); --accent-strong-text:#052018;
     /* re-declared here because a var() alias only resolves against the
        theme values live on the SAME element — inheriting the alias from
        :root would otherwise "freeze" it at the light-theme values */
@@ -154,7 +154,7 @@
     -webkit-appearance:none; appearance:none;
   }
   select{ font-family:'Inter',sans-serif;
-    background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%238b93a6'%3e%3cpath fill-rule='evenodd' d='M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z' clip-rule='evenodd'/%3e%3c/svg%3e");
+    background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%237f9ba0'%3e%3cpath fill-rule='evenodd' d='M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z' clip-rule='evenodd'/%3e%3c/svg%3e");
     background-repeat:no-repeat; background-position:right .7rem center; background-size:1.1em; padding-right:2.2rem;
   }
   input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
@@ -174,16 +174,16 @@
   .btn:active{ transform:translateY(0); }
   .btn svg{ width:16px; height:16px; }
   .btn-ink{ background:var(--ink); color:var(--paper); width:100%; }
-  body[data-theme="dark"] .btn-ink{ background:var(--gold); color:#171310; }
+  body[data-theme="dark"] .btn-ink{ background:var(--gold); color:#052018; }
   .btn-outline{ background:var(--paper-dim); color:var(--ink); border:1.5px solid var(--field-border); width:100%; }
   .btn-outline:hover{ border-color:var(--gold); color:var(--ink); background:var(--field-bg); }
   .btn-ghost{ background:transparent; color:var(--gold-strong); padding:.45rem .6rem; }
   .btn-main{
     width:100%; padding:1rem; font-size:1rem;
-    background:linear-gradient(135deg, var(--ink), #2b3450);
-    color:#f7f5f0; position:relative; overflow:hidden;
+    background:linear-gradient(135deg, var(--ink), #1c5a68);
+    color:#f2f8f8; position:relative; overflow:hidden;
   }
-  body[data-theme="dark"] .btn-main{ background:linear-gradient(135deg, var(--gold), #b6893a); color:#171310; }
+  body[data-theme="dark"] .btn-main{ background:linear-gradient(135deg, var(--gold), #1c8fae); color:#052018; }
   .btn-main svg{ width:20px; height:20px; }
   .btn-row{ display:grid; grid-template-columns:1fr 1.6fr; gap:.75rem; margin-top:.25rem; }
   @media(max-width:480px){ .btn-row{ grid-template-columns:1fr; } }
@@ -258,7 +258,7 @@
   }
   .toast.show{ transform:translateX(0); }
   .toast.success{ background:#3d7a3a; } .toast.error{ background:#b64a3a; }
-  .toast.info{ background:#3b5aa0; } .toast.warning{ background:#a9812f; }
+  .toast.info{ background:#3b5aa0; } .toast.warning{ background:#b7791f; }
   .toast svg{ width:16px; height:16px; flex-shrink:0; }
 
   footer{ text-align:center; margin-top:2.5rem; font-size:.78rem; color:var(--ink-faint); }
@@ -854,7 +854,7 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 0; i < 40; i++) {
       const c = document.createElement('div');
       c.className = 'confetti-piece';
-      const colors = ['#a9812f', '#4f6bd6', '#33532c', '#8a691f'];
+      const colors = ['#0f8f6f', '#4f6bd6', '#1d6d47', '#1c8fae'];
       c.style.background = colors[Math.floor(Math.random() * colors.length)];
       c.style.left = `${Math.random() * 100}%`;
       c.style.animation = `fall ${1.4 + Math.random() * 1.8}s ${Math.random() * .6}s linear forwards`;
