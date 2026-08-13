@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student Ledger — CGPA & Installment</title>
+<title>Student Ledger — CGPA & Tuition</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -21,8 +21,8 @@
     --gold:#a9812f;
     --gold-strong:#8a691f;
     --good-bg:#eef4ea; --good-ink:#33532c; --good-line:#b7cfa9;
-    --mid-bg:#D4A72C;  --mid-ink:#6b4a12;  --mid-line:#e3c485;
-    --low-bg:#D4A72C;  --low-ink:#7a2e22;  --low-line:#e2b3a8;
+    --mid-bg:#faf1de;  --mid-ink:#6b4a12;  --mid-line:#e3c485;
+    --low-bg:#f7e9e6;  --low-ink:#7a2e22;  --low-line:#e2b3a8;
     --shadow: 0 1px 2px rgba(28,35,51,.04), 0 12px 32px -16px rgba(28,35,51,.18);
     --line: var(--rule);
     --paper-dim:#f1ece1;
@@ -50,6 +50,13 @@
     --paper-dim:#20232f;
     --ledger-head-bg:#090b11; --ledger-head-text:#e7c876;
     --accent-strong: var(--gold); --accent-strong-text:#171310;
+    /* re-declared here because a var() alias only resolves against the
+       theme values live on the SAME element — inheriting the alias from
+       :root would otherwise "freeze" it at the light-theme values */
+    --line: var(--rule);
+    --sage: var(--good-ink); --sage-soft: var(--good-bg); --sage-line: var(--good-line);
+    --rust: var(--low-ink); --rust-soft: var(--low-bg); --rust-line: var(--low-line);
+    --gold-soft: var(--mid-bg);
   }
   *{box-sizing:border-box;}
   body{
@@ -153,7 +160,7 @@
   input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
   input[type=number]{ -moz-appearance:textfield; }
   input:focus, select:focus{ outline:none; border-color:var(--gold); box-shadow:0 0 0 3px color-mix(in srgb, var(--gold) 22%, transparent); }
-  .err{ min-height:1.1rem; margin-top:.4rem; font-size:.78rem; color:#b64a3a; visibility:hidden; }
+  .err{ min-height:1.1rem; margin-top:.4rem; font-size:.78rem; color:var(--rust); visibility:hidden; }
   .err.on{ visibility:visible; }
 
   /* ---------- Buttons ---------- */
@@ -168,8 +175,8 @@
   .btn svg{ width:16px; height:16px; }
   .btn-ink{ background:var(--ink); color:var(--paper); width:100%; }
   body[data-theme="dark"] .btn-ink{ background:var(--gold); color:#171310; }
-  .btn-outline{ background:transparent; color:var(--ink-soft); border:1px solid var(--field-border); width:100%; }
-  .btn-outline:hover{ border-color:var(--ink-faint); color:var(--ink); }
+  .btn-outline{ background:var(--paper-dim); color:var(--ink); border:1.5px solid var(--field-border); width:100%; }
+  .btn-outline:hover{ border-color:var(--gold); color:var(--ink); background:var(--field-bg); }
   .btn-ghost{ background:transparent; color:var(--gold-strong); padding:.45rem .6rem; }
   .btn-main{
     width:100%; padding:1rem; font-size:1rem;
@@ -190,13 +197,14 @@
     animation:rise .35s ease both;
   }
   .course-row.new{ border-left-color:#4f6bd6; }
+  body[data-theme="dark"] .course-row.new{ border-left-color:#7c93e8; }
   .course-row.retake{ border-left-color:var(--gold); }
   .course-row .meta{ font-size:.8rem; color:var(--ink-faint); }
   .course-row .grade{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:.95rem; }
   .course-row .flow{ display:flex; align-items:center; gap:.4rem; }
   .course-row .strike{ text-decoration:line-through; color:var(--ink-faint); font-size:.85rem; }
   .course-row button{ background:none; border:none; cursor:pointer; color:var(--ink-faint); padding:.35rem; border-radius:6px; }
-  .course-row button:hover{ color:#b64a3a; background:color-mix(in srgb, #b64a3a 10%, transparent); }
+  .course-row button:hover{ color:var(--rust); background:color-mix(in srgb, var(--rust) 12%, transparent); }
   .empty-row{ text-align:center; color:var(--ink-faint); font-size:.85rem; padding:1rem; border:1px dashed var(--rule); border-radius:8px; }
   @keyframes rise{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
 
@@ -406,8 +414,8 @@
   </div>
 
   <nav class="tab-nav">
-    <button type="button" class="tab-btn active" data-tab="cgpa-tab">CGPA Calculator</button>
-    <button type="button" class="tab-btn" data-tab="installment-tab">Installment Calculator</button>
+    <button type="button" class="tab-btn active" data-tab="cgpa-tab">CGPA Worksheet</button>
+    <button type="button" class="tab-btn" data-tab="installment-tab">Tuition Ledger</button>
   </nav>
 
   <div id="cgpa-tab" class="tab-content active">
@@ -471,7 +479,7 @@
 
   <div class="sheet">
     <h2>Retake Courses <span style="font-weight:400; color:var(--ink-faint); font-size:.85rem;">(optional)</span></h2>
-    <p class="sub">Improving a past grade or clearing an F.</p>
+    <p class="sub">Improving a past grade or clearing an F — needs <strong>Current Standing</strong> above filled in first, since the math depends on your prior credits.</p>
     <form id="add-retake-form" class="grid cols-4">
       <div>
         <label for="retake-credit">Credits</label>
