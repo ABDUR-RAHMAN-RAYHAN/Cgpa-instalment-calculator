@@ -677,22 +677,17 @@
 
         <div class="card">
           <div class="section-title"><span class="section-num">05</span> Payments made so far(optional)</div>
-          <p class="section-hint">Tell us where you are in the installment plan so we can work out your balance.</p>
-          <div class="track-row">
-            <div class="field-group">
-              <label class="field-label">Installments given so far</label>
-              <select id="installmentsGiven">
-                <option value="0">None yet</option>
-                <option value="1">1st installment</option>
-                <option value="2">Up to 2nd installment</option>
-                <option value="3">All 3 (fully paid)</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label class="field-label">Total amount paid already</label>
-              <input type="number" id="amountPaid" placeholder="e.g. 40000" min="0" value="0">
-            </div>
+          <p class="section-hint">Tell us where you are in the installment plan, then confirm what you actually paid for each one.</p>
+          <div class="field-group">
+            <label class="field-label">Installments given so far</label>
+            <select id="installmentsGiven">
+              <option value="0">None yet</option>
+              <option value="1">1st installment</option>
+              <option value="2">Up to 2nd installment</option>
+              <option value="3">All 3 (fully paid)</option>
+            </select>
           </div>
+          <div id="paidInputsContainer"></div>
         </div>
 
       </div>
@@ -709,9 +704,13 @@
             <div class="line"><span class="desc">Credits taken</span><span class="amt" id="outCredits">0</span></div>
             <div class="line"><span class="desc">Credit fee subtotal</span><span class="amt" id="outSubtotal">৳0</span></div>
             <div class="line negative"><span class="desc" id="outDiscountLabel">Discount</span><span class="amt" id="outDiscountAmt">−৳0</span></div>
+            <p class="bc-note" id="discountCapNote" style="display:none; margin:-4px 0 8px; color:var(--rust); font-size:12px;"></p>
             <div class="line"><span class="desc">Net credit fee</span><span class="amt" id="outNetCredit">৳0</span></div>
             <div class="line"><span class="desc" id="outTermLabel">Term fee</span><span class="amt" id="outTermFee">৳0</span></div>
+            <div class="line" id="fineLine" style="display:none;"><span class="desc" style="color:var(--rust);">Late/short-payment fine</span><span class="amt" id="outFineAmt" style="color:var(--rust);">৳0</span></div>
             <div class="line total"><span class="desc">Total payable</span><span class="amt" id="outTotal">৳0</span></div>
+
+            <div id="shortfallWarning" style="display:none; margin-top:14px; padding:12px 14px; border-radius:8px; background:var(--rust-soft); border:1px solid var(--rust-line); color:var(--rust); font-size:13px; font-weight:600;"></div>
 
             <div class="installments" id="installmentList"></div>
 
@@ -1229,9 +1228,27 @@ document.addEventListener('DOMContentLoaded', () => {
     termFee: 6500,
     discountType: 'none', // 'waiver' | 'scholarship' | 'custom' | 'none'
     discountRate: 0,
-    installmentsGiven: 0,
-    amountPaid: 0
+    installmentsGiven: 0, // how many installments the student has reported making
+    paidInstallments: [0, 0, 0] // amount actually paid against installment 1, 2, 3
   };
+
+  const ordinal = n => ['1st','2nd','3rd'][n-1] || (n + 'th');
+
+  // Credit caps: waiver only applies on the first 15 credits, scholarship only on the first 13.
+  // Any credits taken beyond the cap are charged in full, without discount.
+  const DISCOUNT_CREDIT_CAP = { waiver: 15, scholarship: 13 };
+  const SHORT_PAYMENT_FINE = 500;
+
+  function computeRequiredAmounts(){
+    const cap = DISCOUNT_CREDIT_CAP[state.discountType];
+    const eligibleCredits = cap ? Math.min(state.credits, cap) : state.credits;
+    const eligibleAmount = eligibleCredits * state.creditFee;
+    const subtotal = state.creditFee * state.credits;
+    const discountAmt = eligibleAmount * state.discountRate;
+    const netCredit = subtotal - discountAmt;
+    const baseTotal = netCredit + state.termFee;
+    return [baseTotal * 0.40, baseTotal * 0.30, baseTotal * 0.30];
+  }
 
   function setupPillGroup(containerId, onSelect, exclusiveGroups){
     const container = document.getElementById(containerId);
@@ -1324,59 +1341,134 @@ document.addEventListener('DOMContentLoaded', () => {
     render();
   });
 
+  const paidContainer = document.getElementById('paidInputsContainer');
+
+  function renderPaidInputs(){
+    paidContainer.innerHTML = '';
+    if(state.installmentsGiven === 0){
+      paidContainer.innerHTML = '<p class="section-hint" style="margin:12px 0 0;">Select how many installments you\'ve made above, then confirm the amount for each.</p>';
+      return;
+    }
+    const required = computeRequiredAmounts();
+    for(let i = 1; i <= state.installmentsGiven; i++){
+      const idx = i - 1;
+      const div = document.createElement('div');
+      div.className = 'field-group';
+      div.innerHTML = `
+        <label class="field-label" data-label-idx="${idx}">${ordinal(i)} Installment paid amount (required ${fmt(required[idx])})</label>
+        <input type="number" class="paid-input" data-idx="${idx}" min="0" value="${Math.round(state.paidInstallments[idx] || 0)}">
+        <p class="err" data-warn-idx="${idx}"></p>
+      `;
+      paidContainer.appendChild(div);
+    }
+  }
+
   document.getElementById('installmentsGiven').addEventListener('change', e => {
-    state.installmentsGiven = parseInt(e.target.value);
+    const newGiven = parseInt(e.target.value);
+    const required = computeRequiredAmounts();
+    // Newly selected installments default to "fully paid" (the required amount) — the student can edit down if they paid less.
+    for(let i = state.installmentsGiven; i < newGiven; i++) state.paidInstallments[i] = required[i];
+    // Deselected installments no longer count as given.
+    for(let i = newGiven; i < 3; i++) state.paidInstallments[i] = 0;
+    state.installmentsGiven = newGiven;
+    renderPaidInputs();
     render();
   });
-  document.getElementById('amountPaid').addEventListener('input', e => {
-    state.amountPaid = parseFloat(e.target.value) || 0;
+
+  paidContainer.addEventListener('input', e => {
+    const input = e.target.closest('.paid-input');
+    if(!input) return;
+    const idx = parseInt(input.dataset.idx);
+    state.paidInstallments[idx] = parseFloat(input.value) || 0;
     render();
   });
 
   function render(){
-    const subtotal = state.creditFee * state.credits;
-    const discountAmt = subtotal * state.discountRate;
-    const netCredit = subtotal - discountAmt;
-    const total = netCredit + state.termFee;
+    // --- Task 3 & 4: waiver caps discount at 15 credits, scholarship at 13 credits.
+    // Any credits beyond the cap are charged in full (no discount on the excess). ---
+    const cap = DISCOUNT_CREDIT_CAP[state.discountType]; // undefined for 'custom' / 'none' -> no cap
+    const eligibleCredits = cap ? Math.min(state.credits, cap) : state.credits;
+    const extraCredits = Math.max(0, state.credits - eligibleCredits);
+    const eligibleAmount = eligibleCredits * state.creditFee;
 
-    const inst1 = total * 0.40;
-    const inst2 = total * 0.30;
-    const inst3 = total * 0.30;
+    const subtotal = state.creditFee * state.credits;
+    const discountAmt = eligibleAmount * state.discountRate; // discount only ever applies to the eligible portion
+    const netCredit = subtotal - discountAmt;
 
     document.getElementById('outCreditFee').textContent = fmt(state.creditFee);
     document.getElementById('outCredits').textContent = state.credits;
     document.getElementById('outSubtotal').textContent = fmt(subtotal);
 
-    let discLabel = 'Discount';
+    let discLabel = 'Discount (0%)';
     if(state.discountType === 'waiver') discLabel = `Waiver (${Math.round(state.discountRate*100)}%)`;
     else if(state.discountType === 'scholarship') discLabel = `Scholarship (${Math.round(state.discountRate*100)}%)`;
     else if(state.discountType === 'custom') discLabel = `Discount (${Math.round(state.discountRate*100)}%)`;
-    else discLabel = 'Discount (0%)';
     document.getElementById('outDiscountLabel').textContent = discLabel;
     document.getElementById('outDiscountAmt').textContent = '−' + fmt(discountAmt);
+
+    const capNoteEl = document.getElementById('discountCapNote');
+    if(cap && extraCredits > 0){
+      const kind = state.discountType === 'waiver' ? 'Waiver' : 'Scholarship';
+      capNoteEl.style.display = 'block';
+      capNoteEl.textContent = `${kind} only covers the first ${cap} credits — the extra ${extraCredits} credit(s) (${fmt(extraCredits*state.creditFee)}) are charged in full.`;
+    } else {
+      capNoteEl.style.display = 'none';
+    }
 
     document.getElementById('outNetCredit').textContent = fmt(netCredit);
     document.getElementById('outTermLabel').textContent = 'Term fee (no discount)';
     document.getElementById('outTermFee').textContent = fmt(state.termFee);
-    document.getElementById('outTotal').textContent = fmt(total);
+
+    const baseTotal = netCredit + state.termFee;
+    const requiredAmts = computeRequiredAmounts();
 
     const installments = [
-      {n:1, label:'1st Installment', sub:'40% of total', amt:inst1},
-      {n:2, label:'2nd Installment', sub:'30% of total', amt:inst2},
-      {n:3, label:'3rd Installment', sub:'30% of total', amt:inst3},
+      {n:1, label:'1st Installment', sub:'40% of total', amt:requiredAmts[0]},
+      {n:2, label:'2nd Installment', sub:'30% of total', amt:requiredAmts[1]},
+      {n:3, label:'3rd Installment', sub:'30% of total', amt:requiredAmts[2]},
     ];
+
+    // --- Task 1: status now follows the dropdown ("given") plus the amount actually confirmed per installment. ---
+    // --- Task 2 + warning: any given installment paid less than what's required adds a ৳500 fine and a visible warning. ---
+    let totalFines = 0;
+    let shortCount = 0;
     const listEl = document.getElementById('installmentList');
     listEl.innerHTML = '';
-    installments.forEach(inst => {
-      let statusClass = 'upcoming';
-      let statusText = 'Upcoming';
-      if(inst.n <= state.installmentsGiven){
-        statusClass = 'paid';
-        statusText = 'Paid';
+
+    installments.forEach((inst, idx) => {
+      const given = inst.n <= state.installmentsGiven;
+      const paid = given ? (state.paidInstallments[idx] || 0) : 0;
+      const required = requiredAmts[idx];
+      let statusClass, statusText, isShort = false;
+
+      if(given){
+        if(paid >= required && required > 0){
+          statusClass = 'paid'; statusText = 'Paid';
+        } else {
+          statusClass = 'due'; statusText = 'Short paid'; isShort = required > 0;
+        }
       } else if(inst.n === state.installmentsGiven + 1){
-        statusClass = 'due';
-        statusText = 'Due now';
+        statusClass = 'due'; statusText = 'Due now';
+      } else {
+        statusClass = 'upcoming'; statusText = 'Upcoming';
       }
+
+      // Keep the dynamic input row (if visible) in sync with the required amount and any shortfall warning.
+      const labelEl = paidContainer.querySelector(`[data-label-idx="${idx}"]`);
+      const warnEl = paidContainer.querySelector(`[data-warn-idx="${idx}"]`);
+      if(labelEl) labelEl.textContent = `${ordinal(inst.n)} Installment paid amount (required ${fmt(required)})`;
+      if(warnEl){
+        if(isShort){
+          warnEl.textContent = `⚠ Short by ${fmt(required - paid)} — a ৳${SHORT_PAYMENT_FINE} fine has been added.`;
+          warnEl.classList.add('on');
+        } else {
+          warnEl.textContent = '';
+          warnEl.classList.remove('on');
+        }
+      }
+
+      if(isShort){ totalFines += SHORT_PAYMENT_FINE; shortCount++; }
+
       const cardClass = statusClass === 'upcoming' ? '' : statusClass;
       const div = document.createElement('div');
       div.className = 'inst-card ' + cardClass;
@@ -1385,7 +1477,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="inst-badge">${inst.n}</div>
           <div>
             <div class="inst-title">${inst.label}</div>
-            <div class="inst-sub">${inst.sub}</div>
+            <div class="inst-sub">${inst.sub}${given ? ' · paid ' + fmt(paid) : ''}</div>
           </div>
         </div>
         <div style="text-align:right;">
@@ -1395,44 +1487,60 @@ document.addEventListener('DOMContentLoaded', () => {
       listEl.appendChild(div);
     });
 
-    const pct = total > 0 ? Math.min(100, (state.amountPaid/total)*100) : 0;
+    const fineLineEl = document.getElementById('fineLine');
+    if(totalFines > 0){
+      fineLineEl.style.display = 'flex';
+      document.getElementById('outFineAmt').textContent = '+' + fmt(totalFines);
+    } else {
+      fineLineEl.style.display = 'none';
+    }
+
+    // Prominent on-page warning whenever any given installment is short-paid.
+    const shortfallWarningEl = document.getElementById('shortfallWarning');
+    if(shortCount > 0){
+      shortfallWarningEl.style.display = 'block';
+      shortfallWarningEl.textContent = `⚠ ${shortCount} installment(s) paid less than required — a ৳${SHORT_PAYMENT_FINE} fine each (${fmt(totalFines)} total) has been added to the total payable.`;
+    } else {
+      shortfallWarningEl.style.display = 'none';
+    }
+
+    const total = baseTotal + totalFines;
+    document.getElementById('outTotal').textContent = fmt(total);
+
+    const amountPaid = state.paidInstallments.reduce((s, v, i) => s + (i < state.installmentsGiven ? (v || 0) : 0), 0);
+    const pct = total > 0 ? Math.min(100, (amountPaid/total)*100) : 0;
     document.getElementById('progressBar').style.width = pct + '%';
     document.getElementById('progressPct').textContent = Math.round(pct) + '%';
-    document.getElementById('progressPaidAmt').textContent = fmt(state.amountPaid) + ' paid';
+    document.getElementById('progressPaidAmt').textContent = fmt(amountPaid) + ' paid';
     document.getElementById('progressTotalAmt').textContent = 'of ' + fmt(total);
 
-    const expectedByNow = installments.slice(0, state.installmentsGiven).reduce((s,i)=>s+i.amt, 0);
-    const remainingTotal = Math.max(0, total - state.amountPaid);
+    const remainingTotal = Math.max(0, total - amountPaid);
     const callout = document.getElementById('balanceCallout');
     const bcLabel = document.getElementById('bcLabel');
     const bcAmt = document.getElementById('bcAmt');
     const bcNote = document.getElementById('bcNote');
 
-    if(total <= 0){
+    if(baseTotal <= 0){
       callout.className = 'balance-callout';
       bcLabel.textContent = 'Balance due';
       bcAmt.textContent = fmt(0);
       bcNote.textContent = "Complete steps 1–4 to see your figures.";
-    } else if(remainingTotal <= 0){
+    } else if(remainingTotal <= 0 && state.installmentsGiven >= 3){
       callout.className = 'balance-callout settled';
       bcLabel.textContent = 'All settled';
       bcAmt.textContent = fmt(0);
-      bcNote.textContent = "You've paid the full amount due. No balance remaining.";
+      bcNote.textContent = shortCount > 0
+        ? `Balance cleared, but ${shortCount} installment(s) were short-paid — ${fmt(totalFines)} in fines is included above.`
+        : "You've paid the full amount due. No balance remaining.";
     } else {
       callout.className = 'balance-callout';
       bcLabel.textContent = 'Balance remaining';
       bcAmt.textContent = fmt(remainingTotal);
-      const diff = state.amountPaid - expectedByNow;
       let note = '';
-      if(state.installmentsGiven < 3){
-        const nextAmt = installments[state.installmentsGiven].amt;
-        if(Math.abs(diff) < 1){
-          note = `Right on track. Next up: installment ${state.installmentsGiven+1} for ${fmt(nextAmt)}.`;
-        } else if(diff > 0){
-          note = `You've paid ${fmt(diff)} more than the ${state.installmentsGiven} installment(s) selected — that credit rolls into what's next.`;
-        } else {
-          note = `You're ${fmt(Math.abs(diff))} short of the ${state.installmentsGiven} installment(s) selected.`;
-        }
+      if(shortCount > 0){
+        note = `⚠ ${shortCount} installment(s) were paid less than required — ${fmt(totalFines)} in fines added to your total.`;
+      } else if(state.installmentsGiven < 3){
+        note = `Next up: installment ${state.installmentsGiven + 1} for ${fmt(requiredAmts[state.installmentsGiven])}.`;
       } else {
         note = "Final installment stage reached — this is what's left to clear.";
       }
@@ -1440,6 +1548,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  renderPaidInputs();
   render();
 })();
 </script>
