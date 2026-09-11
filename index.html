@@ -352,7 +352,7 @@
   }
   #installment-tab .inst-card .inst-left{ display:flex; align-items:center; gap:11px; }
   #installment-tab .inst-badge{
-    width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    width:28px; height:28px; border-radius:50%; display:flex; alignify-items:center; justify-content:center;
     font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600;
     background:var(--paper-dim); color:var(--ink-soft); border:1px solid var(--rule); flex-shrink:0;
   }
@@ -1220,7 +1220,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
 // ================= Tuition Installment Ledger =================
 (function(){
-  const fmt = n => '৳' + Math.round(n).toLocaleString('en-IN');
+  const fmt = n => (n < 0 ? '-৳' : '৳') + Math.round(Math.abs(n)).toLocaleString('en-IN');
 
   let state = {
     creditFee: 5525,
@@ -1238,8 +1238,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Any credits taken beyond the cap are charged in full, without discount.
   const DISCOUNT_CREDIT_CAP = { waiver: 15, scholarship: 13 };
   const SHORT_PAYMENT_FINE = 500;
+  // Cumulative payment checkpoints: by installment 1 you must have paid 40% of the
+  // total, by installment 2 a cumulative 70%, and by installment 3 (final) 100%.
+  const CUM_THRESHOLDS = [0.40, 0.70, 1.00];
 
-  function computeRequiredAmounts(){
+  function computeBaseTotal(){
     const cap = DISCOUNT_CREDIT_CAP[state.discountType];
     const eligibleCredits = cap ? Math.min(state.credits, cap) : state.credits;
     const eligibleAmount = eligibleCredits * state.creditFee;
@@ -1247,7 +1250,59 @@ document.addEventListener('DOMContentLoaded', () => {
     const discountAmt = eligibleAmount * state.discountRate;
     const netCredit = subtotal - discountAmt;
     const baseTotal = netCredit + state.termFee;
-    return [baseTotal * 0.40, baseTotal * 0.30, baseTotal * 0.30];
+    return { subtotal, discountAmt, netCredit, baseTotal, eligibleCredits };
+  }
+
+  // Nominal (no-shortfall) per-installment shares — used only to pre-fill the "paid" inputs
+  // when the student marks an installment as given, assuming it's paid in full.
+  function computeNominalAmounts(){
+    const { baseTotal } = computeBaseTotal();
+    return [
+      CUM_THRESHOLDS[0] * baseTotal,
+      (CUM_THRESHOLDS[1] - CUM_THRESHOLDS[0]) * baseTotal,
+      (CUM_THRESHOLDS[2] - CUM_THRESHOLDS[1]) * baseTotal
+    ];
+  }
+
+  // Builds the cascading installment plan: each installment must bring the CUMULATIVE
+  // amount paid up to that point to at least its threshold (40% / 70% / 100%) of the base
+  // total. If a checkpoint is missed, a ৳500 fine is added, and that fine debt is carried
+  // forward and must be cleared (along with catching up to the next %) by the next
+  // installment — so the "second installment" 70% checkpoint effectively includes any
+  // fine still owed from installment 1, and so on into the final (100%) installment.
+  function computeInstallmentPlan(){
+    const { baseTotal } = computeBaseTotal();
+    let cumulativePaidBefore = 0;
+    let cumulativeFineBefore = 0;
+    const plan = [];
+    for (let i = 0; i < 3; i++) {
+      const thresholdAmt = CUM_THRESHOLDS[i] * baseTotal;
+      // Amount due at this checkpoint: catch up to this stage's % of the base total,
+      // plus clear any fine debt still owed from an earlier shortfall.
+      const requiredAmt = Math.max(0, thresholdAmt - cumulativePaidBefore + cumulativeFineBefore);
+      const given = i < state.installmentsGiven;
+      let paid = 0, isShort = false, fineThisStage = 0, cumulativePaidAfter = cumulativePaidBefore;
+      // If an earlier installment was overpaid enough to already clear this checkpoint,
+      // treat this stage as paid even though the student hasn't formally marked it "given".
+      let autoPaid = false;
+      if (given) {
+        paid = state.paidInstallments[i] || 0;
+        cumulativePaidAfter = cumulativePaidBefore + paid;
+        if (cumulativePaidAfter < thresholdAmt + cumulativeFineBefore - 0.005) {
+          isShort = true;
+          fineThisStage = SHORT_PAYMENT_FINE;
+        }
+      } else if (cumulativePaidBefore >= thresholdAmt + cumulativeFineBefore - 0.005 && cumulativePaidBefore > 0) {
+        autoPaid = true;
+      }
+      plan.push({
+        index: i, thresholdAmt, requiredAmt, given, paid, isShort, fineThisStage, autoPaid,
+        cumulativePaidBefore, cumulativeFineBefore
+      });
+      if (given) cumulativePaidBefore = cumulativePaidAfter;
+      cumulativeFineBefore += fineThisStage;
+    }
+    return { baseTotal, plan, totalFines: cumulativeFineBefore, totalPaid: cumulativePaidBefore };
   }
 
   function setupPillGroup(containerId, onSelect, exclusiveGroups){
@@ -1342,6 +1397,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const paidContainer = document.getElementById('paidInputsContainer');
+  const stageHint = ['Reach 40% of the total', 'Reach 70% of the total (cumulative)', 'Full amount due (100%)'];
 
   function renderPaidInputs(){
     paidContainer.innerHTML = '';
@@ -1349,25 +1405,40 @@ document.addEventListener('DOMContentLoaded', () => {
       paidContainer.innerHTML = '<p class="section-hint" style="margin:12px 0 0;">Select how many installments you\'ve made above, then confirm the amount for each.</p>';
       return;
     }
-    const required = computeRequiredAmounts();
+    const nominal = computeNominalAmounts();
     for(let i = 1; i <= state.installmentsGiven; i++){
       const idx = i - 1;
       const div = document.createElement('div');
       div.className = 'field-group';
       div.innerHTML = `
-        <label class="field-label" data-label-idx="${idx}">${ordinal(i)} Installment paid amount (required ${fmt(required[idx])})</label>
-        <input type="number" class="paid-input" data-idx="${idx}" min="0" value="${Math.round(state.paidInstallments[idx] || 0)}">
+        <label class="field-label" data-label-idx="${idx}">${ordinal(i)} Installment paid amount</label>
+        <input type="number" class="paid-input" data-idx="${idx}" min="0" value="${Math.round(nominal[idx] || 0)}">
         <p class="err" data-warn-idx="${idx}"></p>
       `;
       paidContainer.appendChild(div);
+    }
+    // Only set the default the first time an installment is revealed; if the user already
+    // typed a value for it, keep it (state.paidInstallments already holds that).
+    for(let i = 0; i < state.installmentsGiven; i++){
+      if(!state.paidInstallments[i]) {
+        const input = paidContainer.querySelector(`.paid-input[data-idx="${i}"]`);
+        if (input && state.paidInstallments[i] === 0) {
+          state.paidInstallments[i] = nominal[i];
+          input.value = Math.round(nominal[i]);
+        }
+      } else {
+        const input = paidContainer.querySelector(`.paid-input[data-idx="${i}"]`);
+        if (input) input.value = Math.round(state.paidInstallments[i]);
+      }
     }
   }
 
   document.getElementById('installmentsGiven').addEventListener('change', e => {
     const newGiven = parseInt(e.target.value);
-    const required = computeRequiredAmounts();
-    // Newly selected installments default to "fully paid" (the required amount) — the student can edit down if they paid less.
-    for(let i = state.installmentsGiven; i < newGiven; i++) state.paidInstallments[i] = required[i];
+    const nominal = computeNominalAmounts();
+    // Newly selected installments default to "fully paid" (their nominal share) — the
+    // student can edit down if they actually paid less.
+    for(let i = state.installmentsGiven; i < newGiven; i++) state.paidInstallments[i] = nominal[i];
     // Deselected installments no longer count as given.
     for(let i = newGiven; i < 3; i++) state.paidInstallments[i] = 0;
     state.installmentsGiven = newGiven;
@@ -1384,16 +1455,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function render(){
-    // --- Task 3 & 4: waiver caps discount at 15 credits, scholarship at 13 credits.
-    // Any credits beyond the cap are charged in full (no discount on the excess). ---
-    const cap = DISCOUNT_CREDIT_CAP[state.discountType]; // undefined for 'custom' / 'none' -> no cap
-    const eligibleCredits = cap ? Math.min(state.credits, cap) : state.credits;
+    const { subtotal, discountAmt, netCredit, baseTotal, eligibleCredits } = computeBaseTotal();
     const extraCredits = Math.max(0, state.credits - eligibleCredits);
-    const eligibleAmount = eligibleCredits * state.creditFee;
-
-    const subtotal = state.creditFee * state.credits;
-    const discountAmt = eligibleAmount * state.discountRate; // discount only ever applies to the eligible portion
-    const netCredit = subtotal - discountAmt;
 
     document.getElementById('outCreditFee').textContent = fmt(state.creditFee);
     document.getElementById('outCredits').textContent = state.credits;
@@ -1406,6 +1469,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('outDiscountLabel').textContent = discLabel;
     document.getElementById('outDiscountAmt').textContent = '−' + fmt(discountAmt);
 
+    const cap = DISCOUNT_CREDIT_CAP[state.discountType];
     const capNoteEl = document.getElementById('discountCapNote');
     if(cap && extraCredits > 0){
       const kind = state.discountType === 'waiver' ? 'Waiver' : 'Scholarship';
@@ -1419,47 +1483,49 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('outTermLabel').textContent = 'Term fee (no discount)';
     document.getElementById('outTermFee').textContent = fmt(state.termFee);
 
-    const baseTotal = netCredit + state.termFee;
-    const requiredAmts = computeRequiredAmounts();
+    // --- Cumulative cascading plan: 40% by inst. 1, 70% cumulative by inst. 2 (which
+    // absorbs any fine debt from inst. 1), 100% cumulative by inst. 3 (final). ---
+    const { plan, totalFines, totalPaid } = computeInstallmentPlan();
 
-    const installments = [
-      {n:1, label:'1st Installment', sub:'40% of total', amt:requiredAmts[0]},
-      {n:2, label:'2nd Installment', sub:'30% of total', amt:requiredAmts[1]},
-      {n:3, label:'3rd Installment', sub:'30% of total', amt:requiredAmts[2]},
+    const stageMeta = [
+      { label: '1st Installment' },
+      { label: '2nd Installment' },
+      { label: '3rd Installment' }
     ];
 
-    // --- Task 1: status now follows the dropdown ("given") plus the amount actually confirmed per installment. ---
-    // --- Task 2 + warning: any given installment paid less than what's required adds a ৳500 fine and a visible warning. ---
-    let totalFines = 0;
-    let shortCount = 0;
     const listEl = document.getElementById('installmentList');
     listEl.innerHTML = '';
+    let shortCount = 0;
 
-    installments.forEach((inst, idx) => {
-      const given = inst.n <= state.installmentsGiven;
-      const paid = given ? (state.paidInstallments[idx] || 0) : 0;
-      const required = requiredAmts[idx];
-      let statusClass, statusText, isShort = false;
+    plan.forEach((stage, idx) => {
+      const { given, paid, isShort, requiredAmt, thresholdAmt, autoPaid } = stage;
+      let statusClass, statusText;
 
       if(given){
-        if(paid >= required && required > 0){
-          statusClass = 'paid'; statusText = 'Paid';
-        } else {
-          statusClass = 'due'; statusText = 'Short paid'; isShort = required > 0;
-        }
-      } else if(inst.n === state.installmentsGiven + 1){
+        statusClass = isShort ? 'due' : 'paid';
+        statusText = isShort ? 'Short paid' : 'Paid';
+      } else if(autoPaid){
+        // An earlier installment overpaid enough to cover this checkpoint too.
+        statusClass = 'paid'; statusText = 'Paid (overpayment)';
+      } else if(idx === state.installmentsGiven){
         statusClass = 'due'; statusText = 'Due now';
       } else {
         statusClass = 'upcoming'; statusText = 'Upcoming';
       }
 
-      // Keep the dynamic input row (if visible) in sync with the required amount and any shortfall warning.
+      if(isShort) shortCount++;
+
+      // Keep the dynamic input row (if visible) in sync with the running required amount
+      // and any shortfall warning — this is the "amount changes based on what's actually
+      // been paid" behaviour: if an earlier installment fell short, later required
+      // amounts rise to catch the cumulative % (plus any fine owed) back up.
       const labelEl = paidContainer.querySelector(`[data-label-idx="${idx}"]`);
       const warnEl = paidContainer.querySelector(`[data-warn-idx="${idx}"]`);
-      if(labelEl) labelEl.textContent = `${ordinal(inst.n)} Installment paid amount (required ${fmt(required)})`;
+      if(labelEl) labelEl.textContent = `${ordinal(idx+1)} Installment paid amount (needed to stay on track: ${fmt(requiredAmt)})`;
       if(warnEl){
         if(isShort){
-          warnEl.textContent = `⚠ Short by ${fmt(required - paid)} — a ৳${SHORT_PAYMENT_FINE} fine has been added.`;
+          const shortBy = Math.max(0, (thresholdAmt + stage.cumulativeFineBefore) - (stage.cumulativePaidBefore + paid));
+          warnEl.textContent = `⚠ Short of the cumulative ${Math.round(CUM_THRESHOLDS[idx]*100)}% checkpoint by ${fmt(shortBy)} — a ৳${SHORT_PAYMENT_FINE} fine has been added.`;
           warnEl.classList.add('on');
         } else {
           warnEl.textContent = '';
@@ -1467,21 +1533,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      if(isShort){ totalFines += SHORT_PAYMENT_FINE; shortCount++; }
-
       const cardClass = statusClass === 'upcoming' ? '' : statusClass;
       const div = document.createElement('div');
       div.className = 'inst-card ' + cardClass;
       div.innerHTML = `
         <div class="inst-left">
-          <div class="inst-badge">${inst.n}</div>
+          <div class="inst-badge">${idx+1}</div>
           <div>
-            <div class="inst-title">${inst.label}</div>
-            <div class="inst-sub">${inst.sub}${given ? ' · paid ' + fmt(paid) : ''}</div>
+            <div class="inst-title">${stageMeta[idx].label}</div>
+            <div class="inst-sub">${stageHint[idx]}${given ? ' · paid ' + fmt(paid) : (autoPaid ? ' · covered by earlier overpayment' : '')}</div>
           </div>
         </div>
         <div style="text-align:right;">
-          <div class="inst-amt">${fmt(inst.amt)}</div>
+          <div class="inst-amt">${fmt(requiredAmt)}</div>
           <span class="status-tag ${statusClass}">${statusText}</span>
         </div>`;
       listEl.appendChild(div);
@@ -1495,11 +1559,11 @@ document.addEventListener('DOMContentLoaded', () => {
       fineLineEl.style.display = 'none';
     }
 
-    // Prominent on-page warning whenever any given installment is short-paid.
+    // Prominent on-page warning whenever any given installment missed its cumulative checkpoint.
     const shortfallWarningEl = document.getElementById('shortfallWarning');
     if(shortCount > 0){
       shortfallWarningEl.style.display = 'block';
-      shortfallWarningEl.textContent = `⚠ ${shortCount} installment(s) paid less than required — a ৳${SHORT_PAYMENT_FINE} fine each (${fmt(totalFines)} total) has been added to the total payable.`;
+      shortfallWarningEl.textContent = `⚠ ${shortCount} installment(s) missed their cumulative checkpoint (40% / 70% / 100%) — a ৳${SHORT_PAYMENT_FINE} fine each (${fmt(totalFines)} total) has been added to the total payable.`;
     } else {
       shortfallWarningEl.style.display = 'none';
     }
@@ -1507,14 +1571,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const total = baseTotal + totalFines;
     document.getElementById('outTotal').textContent = fmt(total);
 
-    const amountPaid = state.paidInstallments.reduce((s, v, i) => s + (i < state.installmentsGiven ? (v || 0) : 0), 0);
+    const amountPaid = totalPaid;
     const pct = total > 0 ? Math.min(100, (amountPaid/total)*100) : 0;
     document.getElementById('progressBar').style.width = pct + '%';
     document.getElementById('progressPct').textContent = Math.round(pct) + '%';
     document.getElementById('progressPaidAmt').textContent = fmt(amountPaid) + ' paid';
     document.getElementById('progressTotalAmt').textContent = 'of ' + fmt(total);
 
-    const remainingTotal = Math.max(0, total - amountPaid);
+    // Don't clamp at zero: if the student has paid more than the total (in any
+    // installment), the whole plan counts as paid and the balance shows as negative
+    // (a credit), rather than pretending the surplus doesn't exist.
+    const remainingTotal = total - amountPaid;
     const callout = document.getElementById('balanceCallout');
     const bcLabel = document.getElementById('bcLabel');
     const bcAmt = document.getElementById('bcAmt');
@@ -1525,22 +1592,30 @@ document.addEventListener('DOMContentLoaded', () => {
       bcLabel.textContent = 'Balance due';
       bcAmt.textContent = fmt(0);
       bcNote.textContent = "Complete steps 1–4 to see your figures.";
-    } else if(remainingTotal <= 0 && state.installmentsGiven >= 3){
+    } else if(remainingTotal <= 0){
       callout.className = 'balance-callout settled';
-      bcLabel.textContent = 'All settled';
-      bcAmt.textContent = fmt(0);
-      bcNote.textContent = shortCount > 0
-        ? `Balance cleared, but ${shortCount} installment(s) were short-paid — ${fmt(totalFines)} in fines is included above.`
-        : "You've paid the full amount due. No balance remaining.";
+      if(remainingTotal < -0.5){
+        bcLabel.textContent = 'Overpaid';
+        bcAmt.textContent = fmt(remainingTotal);
+        bcNote.textContent = shortCount > 0
+          ? `Fully covered with credit left over, but ${shortCount} installment(s) missed their checkpoint — ${fmt(totalFines)} in fines is included above.`
+          : `Every installment is covered — you've paid ${fmt(Math.abs(remainingTotal))} more than the total due.`;
+      } else {
+        bcLabel.textContent = 'All settled';
+        bcAmt.textContent = fmt(0);
+        bcNote.textContent = shortCount > 0
+          ? `Balance cleared, but ${shortCount} installment(s) missed their checkpoint — ${fmt(totalFines)} in fines is included above.`
+          : "You've paid the full amount due. No balance remaining.";
+      }
     } else {
       callout.className = 'balance-callout';
       bcLabel.textContent = 'Balance remaining';
       bcAmt.textContent = fmt(remainingTotal);
       let note = '';
       if(shortCount > 0){
-        note = `⚠ ${shortCount} installment(s) were paid less than required — ${fmt(totalFines)} in fines added to your total.`;
+        note = `⚠ ${shortCount} installment(s) missed their cumulative checkpoint — ${fmt(totalFines)} in fines added to your total.`;
       } else if(state.installmentsGiven < 3){
-        note = `Next up: installment ${state.installmentsGiven + 1} for ${fmt(requiredAmts[state.installmentsGiven])}.`;
+        note = `Next up: installment ${state.installmentsGiven + 1} — pay ${fmt(plan[state.installmentsGiven].requiredAmt)} to stay on track for the ${Math.round(CUM_THRESHOLDS[state.installmentsGiven]*100)}% checkpoint.`;
       } else {
         note = "Final installment stage reached — this is what's left to clear.";
       }
