@@ -1486,6 +1486,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Cumulative cascading plan: 40% by inst. 1, 70% cumulative by inst. 2 (which
     // absorbs any fine debt from inst. 1), 100% cumulative by inst. 3 (final). ---
     const { plan, totalFines, totalPaid } = computeInstallmentPlan();
+    const total = baseTotal + totalFines;
+    // Display-only: before anything is paid, show a plain 40% / 30% / 30% split of the
+    // total payable. Once an installment is actually paid, its card shows what was
+    // really paid, and whatever remains of the total is divided evenly across the
+    // installments that haven't been paid yet (split two ways after 1 payment, shown
+    // in full on the 3rd after 2 payments). This is purely cosmetic — the fine/checkpoint
+    // math above still runs off the cumulative 40% / 70% / 100% thresholds untouched.
+    const paidSoFar = totalPaid;
+    const remaining = Math.max(0, total - paidSoFar);
+    let displayAmounts;
+    if (state.installmentsGiven <= 0) {
+      displayAmounts = [0.40, 0.30, 0.30].map(p => p * total);
+    } else if (state.installmentsGiven === 1) {
+      displayAmounts = [state.paidInstallments[0] || 0, remaining / 2, remaining / 2];
+    } else if (state.installmentsGiven === 2) {
+      displayAmounts = [state.paidInstallments[0] || 0, state.paidInstallments[1] || 0, remaining];
+    } else {
+      displayAmounts = [state.paidInstallments[0] || 0, state.paidInstallments[1] || 0, state.paidInstallments[2] || 0];
+    }
 
     const stageMeta = [
       { label: '1st Installment' },
@@ -1545,7 +1564,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </div>
         <div style="text-align:right;">
-          <div class="inst-amt">${fmt(requiredAmt)}</div>
+          <div class="inst-amt">${fmt(displayAmounts[idx])}</div>
           <span class="status-tag ${statusClass}">${statusText}</span>
         </div>`;
       listEl.appendChild(div);
@@ -1568,7 +1587,6 @@ document.addEventListener('DOMContentLoaded', () => {
       shortfallWarningEl.style.display = 'none';
     }
 
-    const total = baseTotal + totalFines;
     document.getElementById('outTotal').textContent = fmt(total);
 
     const amountPaid = totalPaid;
