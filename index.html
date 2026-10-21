@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student Ledger — CGPA & Tuition</title>
+<title>Student Ledger — CGPA, Tuition & Routine</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{
     --paper:#f2f8f8;
@@ -50,9 +51,6 @@
     --paper-dim:#16292c;
     --ledger-head-bg:#03141a; --ledger-head-text:#5be0b8;
     --accent-strong: var(--gold); --accent-strong-text:#052018;
-    /* re-declared here because a var() alias only resolves against the
-       theme values live on the SAME element — inheriting the alias from
-       :root would otherwise "freeze" it at the light-theme values */
     --line: var(--rule);
     --sage: var(--good-ink); --sage-soft: var(--good-bg); --sage-line: var(--good-line);
     --rust: var(--low-ink); --rust-soft: var(--low-bg); --rust-line: var(--low-line);
@@ -71,7 +69,6 @@
   @media(min-width:640px){ .wrap{ padding:4rem 1.5rem 5rem; } }
   #cgpa-tab{ max-width:720px; margin:0 auto; }
 
-  /* ---------- Tabs ---------- */
   .tab-nav{
     display:flex; justify-content:center; gap:.4rem; margin:0 0 2.5rem;
     border-bottom:1px solid var(--rule);
@@ -87,7 +84,6 @@
   .tab-content{ display:none; }
   .tab-content.active{ display:block; animation:rise .4s ease both; }
 
-  /* ---------- Masthead ---------- */
   .masthead{ text-align:center; margin-bottom:2.25rem; position:relative; }
   .masthead .kicker{
     font-family:'IBM Plex Mono',monospace;
@@ -99,9 +95,7 @@
     font-size:clamp(2rem,5vw,2.75rem); margin:0; letter-spacing:-.01em;
   }
   .masthead p{ color:var(--ink-soft); margin:.6rem 0 0; font-size:.95rem; }
-  .rule{
-    border:none; border-top:1px solid var(--rule); margin:1.75rem 0;
-  }
+  .rule{ border:none; border-top:1px solid var(--rule); margin:1.75rem 0; }
   .rule.thick{ border-top:2px solid var(--ink); opacity:.08; }
 
   .theme-switch{
@@ -121,7 +115,6 @@
   #theme-checkbox:checked + .theme-toggle::before{ transform:translateX(20px); }
   #theme-icon svg{ width:16px; height:16px; color:var(--ink-faint); }
 
-  /* ---------- Sections (ledger sheets) ---------- */
   .sheet{
     background:var(--paper-raised);
     border:1px solid var(--rule);
@@ -163,7 +156,6 @@
   .err{ min-height:1.1rem; margin-top:.4rem; font-size:.78rem; color:var(--rust); visibility:hidden; }
   .err.on{ visibility:visible; }
 
-  /* ---------- Buttons ---------- */
   .btn{
     font-family:'Inter',sans-serif; font-weight:600; font-size:.9rem;
     border:none; border-radius:7px; padding:.7rem 1rem; cursor:pointer;
@@ -188,7 +180,6 @@
   .btn-row{ display:grid; grid-template-columns:1fr 1.6fr; gap:.75rem; margin-top:.25rem; }
   @media(max-width:480px){ .btn-row{ grid-template-columns:1fr; } }
 
-  /* ---------- Course ledger rows ---------- */
   #course-list{ margin:1rem 0 1.4rem; display:flex; flex-direction:column; gap:.55rem; }
   .course-row{
     display:flex; align-items:center; justify-content:space-between; gap:.75rem;
@@ -208,7 +199,6 @@
   .empty-row{ text-align:center; color:var(--ink-faint); font-size:.85rem; padding:1rem; border:1px dashed var(--rule); border-radius:8px; }
   @keyframes rise{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
 
-  /* ---------- Result: the stamp ---------- */
   #result{ display:none; margin-top:1.5rem; }
   .result-sheet{
     border-radius:12px; padding:2rem 1.5rem; text-align:center; position:relative;
@@ -217,9 +207,7 @@
   .result-sheet.good{ background:var(--good-bg); color:var(--good-ink); border-color:var(--good-line); }
   .result-sheet.mid{ background:var(--mid-bg); color:var(--mid-ink); border-color:var(--mid-line); }
   .result-sheet.low{ background:var(--low-bg); color:var(--low-ink); border-color:var(--low-line); }
-
   .verdict{ font-family:'Fraunces',serif; font-weight:600; font-size:1.4rem; margin:0 0 1.4rem; }
-
   .stamp-row{ display:flex; flex-wrap:wrap; justify-content:center; gap:2.5rem; }
   .stamp{
     width:132px; height:132px; border-radius:50%; border:2px solid currentColor;
@@ -233,10 +221,7 @@
   .stamp .lbl{ font-size:.6rem; letter-spacing:.16em; text-transform:uppercase; margin-top:.35rem; opacity:.85; }
   .stamp-detail{ text-align:left; font-size:.78rem; opacity:.85; align-self:center; }
   .stamp-detail div{ margin:.15rem 0; }
-
-  .planner{
-    margin-top:1.5rem; padding-top:1.4rem; border-top:1px dashed currentColor; opacity:.97;
-  }
+  .planner{ margin-top:1.5rem; padding-top:1.4rem; border-top:1px dashed currentColor; opacity:.97; }
   .planner p{ margin:0; line-height:1.9; }
   .planner input{
     width:64px; display:inline-block; text-align:center; margin:0 .25rem;
@@ -249,7 +234,6 @@
   .target-out{ margin-top:1rem; text-align:center; }
   .target-out .big{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:1.6rem; }
 
-  /* ---------- Notifications ---------- */
   #toast-wrap{ position:fixed; top:1.1rem; right:1.1rem; z-index:100; display:flex; flex-direction:column; gap:.5rem; }
   .toast{
     font-family:'Inter',sans-serif; font-size:.85rem; font-weight:500;
@@ -264,30 +248,16 @@
   footer{ text-align:center; margin-top:2.5rem; font-size:.78rem; color:var(--ink-faint); }
   footer a{ color:var(--gold-strong); text-decoration:none; }
   footer a:hover{ text-decoration:underline; }
-
   .confetti-piece{ position:fixed; width:6px; height:13px; top:0; opacity:0; z-index:99; pointer-events:none; }
 
-  /* ================= Installment Ledger (scoped) ================= */
-  #installment-tab .inst-grid{
-    display:grid; grid-template-columns:1.05fr .95fr; gap:28px; align-items:start;
-  }
+  #installment-tab .inst-grid{ display:grid; grid-template-columns:1.05fr .95fr; gap:28px; align-items:start; }
   @media (max-width:860px){ #installment-tab .inst-grid{ grid-template-columns:1fr; } }
-
-  #installment-tab .card{
-    background:var(--paper-raised); border:1px solid var(--rule); border-radius:14px;
-    box-shadow:var(--shadow); padding:28px;
-  }
+  #installment-tab .card{ background:var(--paper-raised); border:1px solid var(--rule); border-radius:14px; box-shadow:var(--shadow); padding:28px; }
   #installment-tab .card + .card{ margin-top:20px; }
-
-  #installment-tab .section-title{
-    font-family:'Fraunces',serif; font-size:19px; font-weight:600; margin:0 0 4px;
-    display:flex; align-items:baseline; gap:8px;
-  }
+  #installment-tab .section-title{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; margin:0 0 4px; display:flex; align-items:baseline; gap:8px; }
   #installment-tab .section-num{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--gold-strong); font-weight:600; }
   #installment-tab .section-hint{ font-size:13px; color:var(--ink-soft); margin:0 0 18px; }
-
   #installment-tab label.field-label{ display:block; font-size:13px; font-weight:600; color:var(--ink); margin-bottom:8px; text-transform:none; letter-spacing:normal; }
-
   #installment-tab .pill-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:6px; }
   #installment-tab .pill{
     border:1px solid var(--field-border); background:var(--paper); color:var(--ink-soft);
@@ -297,10 +267,8 @@
   #installment-tab .pill:hover{ border-color:var(--gold); color:var(--ink); }
   #installment-tab .pill.active{ background:var(--accent-strong); border-color:var(--accent-strong); color:var(--accent-strong-text); }
   #installment-tab .pill.active.gold{ background:var(--gold); border-color:var(--gold); color:var(--accent-strong-text); }
-
   #installment-tab .field-group{ margin-bottom:20px; }
   #installment-tab .field-group:last-child{ margin-bottom:0; }
-
   #installment-tab input[type="number"], #installment-tab input[type="text"], #installment-tab select{
     width:100%; border:1px solid var(--field-border); border-radius:9px; padding:11px 13px;
     font-size:15px; font-family:'IBM Plex Mono',monospace; color:var(--ink); background:var(--paper);
@@ -309,19 +277,10 @@
   #installment-tab select{ font-family:'Inter',sans-serif; }
   #installment-tab input:focus, #installment-tab select:focus{ outline:none; border-color:var(--gold); background:var(--field-bg); }
   #installment-tab .inline-input{ max-width:220px; }
-
-  #installment-tab .sub-panel{
-    margin-top:10px; padding:14px; background:var(--paper-dim); border-radius:9px; border:1px dashed var(--rule);
-  }
+  #installment-tab .sub-panel{ margin-top:10px; padding:14px; background:var(--paper-dim); border-radius:9px; border:1px dashed var(--rule); }
   #installment-tab .discount-groups{ display:flex; flex-direction:column; gap:14px; }
-  #installment-tab .discount-group-label{
-    font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); font-weight:600; margin-bottom:8px;
-  }
-
-  #installment-tab .receipt{
-    position:sticky; top:24px; background:var(--paper-raised); border:1px solid var(--rule);
-    border-radius:14px; box-shadow:var(--shadow); overflow:hidden;
-  }
+  #installment-tab .discount-group-label{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); font-weight:600; margin-bottom:8px; }
+  #installment-tab .receipt{ position:sticky; top:24px; background:var(--paper-raised); border:1px solid var(--rule); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; }
   #installment-tab .receipt-head{ background:var(--ledger-head-bg); color:var(--ledger-head-text); padding:22px 26px; position:relative; }
   #installment-tab .receipt-head::after{
     content:""; position:absolute; left:0; right:0; bottom:-1px; height:10px;
@@ -333,23 +292,15 @@
   #installment-tab .receipt-head .eyebrow{ color:var(--gold-strong); }
   #installment-tab .receipt-head h2{ font-family:'Fraunces',serif; font-size:22px; margin:0; font-weight:600; }
   #installment-tab .receipt-body{ padding:26px 26px 22px; }
-
-  #installment-tab .line{
-    display:flex; justify-content:space-between; align-items:baseline; font-family:'IBM Plex Mono',monospace;
-    font-size:14px; padding:8px 0; border-bottom:1px dotted var(--rule); gap:12px;
-  }
+  #installment-tab .line{ display:flex; justify-content:space-between; align-items:baseline; font-family:'IBM Plex Mono',monospace; font-size:14px; padding:8px 0; border-bottom:1px dotted var(--rule); gap:12px; }
   #installment-tab .line .desc{ color:var(--ink-soft); }
   #installment-tab .line .amt{ color:var(--ink); font-weight:500; white-space:nowrap; }
   #installment-tab .line.negative .amt{ color:var(--rust); }
   #installment-tab .line.total{ border-bottom:none; border-top:2px solid var(--ink); margin-top:6px; padding-top:14px; font-size:17px; }
   #installment-tab .line.total .desc{ color:var(--ink); font-weight:700; font-family:'Fraunces',serif; font-size:16px; }
   #installment-tab .line.total .amt{ font-weight:700; font-size:19px; }
-
   #installment-tab .installments{ margin-top:22px; display:flex; flex-direction:column; gap:10px; }
-  #installment-tab .inst-card{
-    display:flex; align-items:center; justify-content:space-between; padding:13px 15px;
-    border-radius:10px; border:1px solid var(--rule); background:var(--paper);
-  }
+  #installment-tab .inst-card{ display:flex; align-items:center; justify-content:space-between; padding:13px 15px; border-radius:10px; border:1px solid var(--rule); background:var(--paper); }
   #installment-tab .inst-card .inst-left{ display:flex; align-items:center; gap:11px; }
   #installment-tab .inst-badge{
     width:28px; height:28px; border-radius:50%; display:flex; alignify-items:center; justify-content:center;
@@ -363,38 +314,89 @@
   #installment-tab .inst-title{ font-size:13.5px; font-weight:600; color:var(--ink); }
   #installment-tab .inst-sub{ font-size:11.5px; color:var(--ink-faint); margin-top:1px; }
   #installment-tab .inst-amt{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:14.5px; }
-  #installment-tab .status-tag{
-    font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em;
-    padding:2px 8px; border-radius:20px; font-weight:600;
-  }
+  #installment-tab .status-tag{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; padding:2px 8px; border-radius:20px; font-weight:600; }
   #installment-tab .status-tag.paid{ background:var(--sage); color:var(--paper-raised); }
   #installment-tab .status-tag.due{ background:var(--gold); color:var(--paper-raised); }
   #installment-tab .status-tag.upcoming{ background:var(--rule); color:var(--ink-soft); }
-
   #installment-tab .track-panel{ margin-top:22px; padding-top:20px; border-top:1px solid var(--rule); }
   #installment-tab .track-row{ display:flex; gap:12px; margin-bottom:14px; }
   #installment-tab .track-row .field-group{ flex:1; margin-bottom:0; }
-
-  #installment-tab .progress-bar-outer{
-    height:9px; border-radius:6px; background:var(--paper-dim); overflow:hidden; margin:10px 0 4px; border:1px solid var(--rule);
-  }
-  #installment-tab .progress-bar-inner{
-    height:100%; background:linear-gradient(90deg, var(--sage), var(--gold)); border-radius:6px; transition:width .3s ease;
-  }
+  #installment-tab .progress-bar-outer{ height:9px; border-radius:6px; background:var(--paper-dim); overflow:hidden; margin:10px 0 4px; border:1px solid var(--rule); }
+  #installment-tab .progress-bar-inner{ height:100%; background:linear-gradient(90deg, var(--sage), var(--gold)); border-radius:6px; transition:width .3s ease; }
   #installment-tab .progress-label{ display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-faint); }
-
   #installment-tab .balance-callout{ margin-top:18px; padding:16px 18px; border-radius:10px; background:var(--rust-soft); border:1px solid var(--rust-line); }
   #installment-tab .balance-callout.settled{ background:var(--sage-soft); border-color:var(--sage-line); }
-  #installment-tab .balance-callout .bc-label{
-    font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--rust); font-weight:600; margin-bottom:4px;
-  }
+  #installment-tab .balance-callout .bc-label{ font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--rust); font-weight:600; margin-bottom:4px; }
   #installment-tab .balance-callout.settled .bc-label{ color:var(--sage); }
   #installment-tab .balance-callout .bc-amt{ font-family:'Fraunces',serif; font-size:26px; font-weight:700; color:var(--ink); }
   #installment-tab .balance-callout .bc-note{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; }
-
   #installment-tab .custom-row{ display:flex; align-items:center; gap:10px; margin-top:8px; }
   #installment-tab .custom-row input{ max-width:140px; }
   #installment-tab .custom-row span{ font-size:13px; color:var(--ink-soft); }
+#routine-tab main{max-width:960px;margin:0 auto;padding:16px}
+#routine-tab h2{font:600 1.15rem Fraunces,serif;letter-spacing:-.01em;margin:0 0 10px}
+#routine-tab .sub{color:var(--mu);margin:0 0 12px}
+#routine-tab #steps{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap;justify-content:center}
+#routine-tab #steps span{padding:5px 12px;border-radius:99px;border:1px solid var(--bd);font:600 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);background:var(--card)}
+#routine-tab #steps .on{background:var(--ac);border-color:var(--ac);color:#fff}
+#routine-tab #steps .done{color:var(--ok);border-color:var(--ok)}
+#routine-tab .card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:22px;margin-bottom:16px;box-shadow:var(--sh)}
+#routine-tab .hide{display:none}
+#routine-tab button,#routine-tab select,#routine-tab input,#routine-tab textarea{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:7px;padding:8px 10px}
+#routine-tab input,#routine-tab textarea{font-family:'IBM Plex Mono',monospace}
+#routine-tab button{cursor:pointer;font-weight:600;transition:transform .15s}
+#routine-tab button:hover{transform:translateY(-1px)}
+#routine-tab button.p{background:var(--pbg);color:var(--pfg);border-color:var(--pbg)}
+#routine-tab button.s{padding:2px 8px;font-size:12px}
+#routine-tab .drop{display:block;border:2px dashed var(--bd);border-radius:12px;padding:26px;text-align:center;cursor:pointer;color:var(--mu)}
+#routine-tab .drop:hover,#routine-tab .drop.ov{border-color:var(--ac);background:var(--ac2)}
+#routine-tab textarea{width:100%;min-height:160px;font:12px/1.4 ui-monospace,monospace;margin-top:8px}
+#routine-tab .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#routine-tab .msg{color:var(--mu);font-size:13px}
+#routine-tab .rterr{color:var(--er)}
+#routine-tab .ok{color:var(--ok)}
+#routine-tab .rtgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px;max-height:440px;overflow:auto;margin-top:8px}
+#routine-tab .cc{border:1px solid var(--bd);border-radius:8px;padding:6px 8px}
+#routine-tab .cc:has(input:checked){border-color:var(--ac);background:var(--ac2)}
+#routine-tab .cc label{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+#routine-tab .cc details{margin-top:4px;font-size:12px}
+#routine-tab #sel{position:sticky;top:0;background:var(--card);padding:8px 0;font-weight:600}
+#routine-tab .chip{display:inline-flex;gap:4px;align-items:center;background:var(--ac2);color:var(--ac);border-radius:99px;padding:2px 10px;margin:3px 4px 0 0;font-size:13px}
+#routine-tab .chip b{cursor:pointer}
+#routine-tab .course{border-top:1px solid var(--bd);padding:10px 0}
+#routine-tab .course:first-child{border-top:0}
+#routine-tab .pref{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+#routine-tab .pref label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mu)}
+#routine-tab .tg{display:flex;gap:4px;overflow-x:auto;margin-top:8px}
+#routine-tab .ax{position:relative;width:54px;flex:none;margin-top:22px;font-size:11px;color:var(--mu)}
+#routine-tab .ax i{position:absolute;font-style:normal}
+#routine-tab .dc{flex:1;min-width:112px}
+#routine-tab .dh{text-align:center;font-weight:600;font-size:13px;height:22px}
+#routine-tab .db{position:relative;border-left:1px solid var(--bd);background-image:repeating-linear-gradient(var(--bd) 0 1px,transparent 1px 48px)}
+#routine-tab .bk{position:absolute;left:2px;right:2px;border-radius:6px;padding:2px 5px;font-size:11px;line-height:1.25;overflow:hidden;border-left:4px solid}
+#routine-tab .selbar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;z-index:5;border-bottom:1px solid var(--bd)}
+#routine-tab .fd{margin-top:6px;border:1px solid var(--bd);border-radius:8px;padding:8px 10px}
+#routine-tab .fd summary{cursor:pointer;font-size:14px}
+#routine-tab .fl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 10px;max-height:220px;overflow:auto;margin-top:8px}
+#routine-tab .fl label{display:flex;gap:6px;align-items:center;font-size:13px;padding:2px 0;cursor:pointer}
+#routine-tab .dayb{display:flex;gap:6px;flex-wrap:wrap}
+#routine-tab .dayb label{border:1px solid var(--bd);border-radius:99px;padding:4px 14px;cursor:pointer;font-size:13px}
+#routine-tab .dayb label:has(input:checked){background:var(--er);color:#fff;border-color:var(--er)}
+#routine-tab .dayb input{display:none}
+#routine-tab .nav{display:flex;gap:8px;margin-top:16px}
+#routine-tab #steps .done{cursor:pointer}
+#routine-tab .bk{color:#fff;border:0;box-shadow:0 1px 4px rgba(0,0,0,.3);padding:3px 6px;font-size:11.5px}
+#routine-tab .dh{background:var(--ac2);border-radius:6px;line-height:22px}
+#routine-tab .lg{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+#routine-tab .lg span{color:#fff;border-radius:8px;padding:3px 10px;font-size:12px}
+#routine-tab h3{font-size:14px;margin:16px 0 6px}
+#routine-tab input:focus,#routine-tab select:focus,#routine-tab textarea:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 22%,transparent)}
+#routine-tab{--bg:var(--paper);--card:var(--paper-raised);--tx:var(--ink);--mu:var(--ink-soft);--bd:var(--rule);--ac:var(--gold);--ac2:color-mix(in srgb,var(--gold) 14%,var(--paper-raised));--er:var(--low-ink);--ok:var(--good-ink);--pbg:var(--ink);--pfg:var(--paper);--fb:var(--field-border);--sh:var(--shadow)}
+body[data-theme="dark"] #routine-tab{--pbg:var(--gold);--pfg:#052018}
+#routine-tab label{text-transform:none;letter-spacing:normal;font-size:inherit;font-weight:inherit;color:inherit;margin-bottom:0}
+#routine-tab input,#routine-tab select{width:auto;-webkit-appearance:auto;appearance:auto}
+#routine-tab input[type=checkbox]{padding:0}
+.tab-nav{flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -415,6 +417,7 @@
   <nav class="tab-nav">
     <button type="button" class="tab-btn active" data-tab="cgpa-tab">CGPA Calculator</button>
     <button type="button" class="tab-btn" data-tab="installment-tab">Installment Calculator</button>
+    <button type="button" class="tab-btn" data-tab="routine-tab">Routine Maker</button>
   </nav>
 
   <div id="cgpa-tab" class="tab-content active">
@@ -605,7 +608,6 @@
 
   <div id="installment-tab" class="tab-content">
     <div class="inst-grid">
-      <!-- LEFT: FORM -->
       <div class="form-col">
 
         <div class="card">
@@ -692,7 +694,6 @@
 
       </div>
 
-      <!-- RIGHT: RECEIPT -->
       <div class="receipt-col">
         <div class="receipt">
           <div class="receipt-head">
@@ -736,6 +737,42 @@
       </div>
     </div>
   </div><!-- /#installment-tab -->
+
+  <div id="routine-tab" class="tab-content">
+<nav id="steps"><span>1 Upload</span><span>2 Courses</span><span>3 Faculty</span><span>4 Preferences</span><span>5 Routines</span></nav>
+
+<section class="card" id="s1"><h2>1. Upload course PDF</h2>
+<label class="drop" id="dz"><input type="file" id="pdf" accept="application/pdf" hidden><b>Choose a PDF</b> or drop it here<br><small id="fn">Course, section, faculty, day and time are read from the file</small></label>
+<p class="msg" id="pmsg"></p>
+<details id="rev" class="hide"><summary class="msg">Review or fix the extracted rows</summary>
+<textarea id="raw" spellcheck="false"></textarea><div class="row" style="margin-top:8px"><button id="apply" class="p">Update from edited rows</button><span class="msg">Format: course, section, faculty, day, start-end, room</span></div></details>
+<div class="nav"><button class="p hide" id="n1">Continue to courses →</button></div></section>
+
+<section class="card hide" id="s2"><h2>2. Which courses are you taking?</h2>
+<input id="q" placeholder="Search by code or title…" style="width:100%">
+<div class="selbar" id="sel"></div><div class="rtgrid" id="clist"></div>
+<div class="nav"><button id="b1">← Back</button><button class="p" id="to3">Continue →</button></div></section>
+
+<section class="card hide" id="s3"><h2>3. Choose faculty for each course</h2>
+<p class="msg">Add one or more faculty per course. If you add none, any faculty is allowed.</p><div id="flist"></div>
+<div class="nav"><button id="b2">← Back</button><button class="p" id="n3">Continue →</button></div></section>
+
+<section class="card hide" id="s4"><h2>4. Your time preferences</h2>
+<div class="pref">
+<label>Earliest start<input type="time" id="t0" value="08:00"></label>
+<label>Latest end<input type="time" id="t1" value="17:00"></label>
+<label>Minimum break between classes (min, 0 = back-to-back is fine)<input type="number" id="gap" value="0" min="0" step="5"></label>
+<label>Routines to show<input type="number" id="max" value="10" min="1" max="50"></label>
+<label>Sort by<select id="sort"><option value="days">Fewest campus days</option><option value="gaps">Least waiting time</option><option value="rand">Random variety</option></select></label>
+</div>
+<h3>Days you want free</h3>
+<div class="dayb" id="offd"><label><input type="checkbox" value="Sat">Sat</label><label><input type="checkbox" value="Sun">Sun</label><label><input type="checkbox" value="Mon">Mon</label><label><input type="checkbox" value="Tue">Tue</label><label><input type="checkbox" value="Wed">Wed</label><label><input type="checkbox" value="Thu">Thu</label><label><input type="checkbox" value="Fri">Fri</label></div>
+<h3>Time slots to avoid</h3>
+<div class="row"><select id="ad"><option value="">Every day</option><option>Sat</option><option>Sun</option><option>Mon</option><option>Tue</option><option>Wed</option><option>Thu</option><option>Fri</option></select><input type="time" id="a0" value="13:00"><span class="msg">to</span><input type="time" id="a1" value="14:00"><button id="aadd">Add slot</button></div><div id="alist"></div>
+<p class="msg">All times are Bangladesh Standard Time (GMT+6).</p>
+<div class="nav"><button id="b3">← Back</button><button class="p" id="go">Generate routines</button></div></section>
+<section id="out" class="hide"><div class="nav" style="margin:0 0 12px"><button id="b4">← Back to preferences</button><button id="b0">Start over</button></div><div id="res"></div></section>
+  </div><!-- /#routine-tab -->
 
   <footer><p>Abdur Rahman</p></footer>
 </div>
@@ -1125,7 +1162,6 @@ document.addEventListener('DOMContentLoaded', () => {
     else gpaEl.textContent = requiredGpa.toFixed(2);
   };
 
-  // --- Event listeners ---
   [currentCgpaInput, completedCreditsInput, completedEarnedCreditsInput].forEach(el => {
     el.addEventListener('input', () => { validateAcademicStanding(); saveState(); });
   });
@@ -1197,7 +1233,6 @@ document.addEventListener('DOMContentLoaded', () => {
       handleFutureCgpaCalculation(`future-gpa-${s}`, `future-credits-${s}`, `future-cgpa-${s}`)));
   });
 
-  // --- Tab switching ---
   const tabBtns = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
   tabBtns.forEach(btn => {
@@ -1209,7 +1244,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // --- Init ---
   initializeTheme();
   loadState();
   renderCourses();
@@ -1218,7 +1252,6 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script>
-// ================= Tuition Installment Ledger =================
 (function(){
   const fmt = n => (n < 0 ? '-৳' : '৳') + Math.round(Math.abs(n)).toLocaleString('en-IN');
 
@@ -1226,20 +1259,16 @@ document.addEventListener('DOMContentLoaded', () => {
     creditFee: 5525,
     credits: 12,
     termFee: 6500,
-    discountType: 'none', // 'waiver' | 'scholarship' | 'custom' | 'none'
+    discountType: 'none',
     discountRate: 0,
-    installmentsGiven: 0, // how many installments the student has reported making
-    paidInstallments: [0, 0, 0] // amount actually paid against installment 1, 2, 3
+    installmentsGiven: 0,
+    paidInstallments: [0, 0, 0]
   };
 
   const ordinal = n => ['1st','2nd','3rd'][n-1] || (n + 'th');
 
-  // Credit caps: waiver only applies on the first 15 credits, scholarship only on the first 13.
-  // Any credits taken beyond the cap are charged in full, without discount.
   const DISCOUNT_CREDIT_CAP = { waiver: 15, scholarship: 13 };
   const SHORT_PAYMENT_FINE = 500;
-  // Cumulative payment checkpoints: by installment 1 you must have paid 40% of the
-  // total, by installment 2 a cumulative 70%, and by installment 3 (final) 100%.
   const CUM_THRESHOLDS = [0.40, 0.70, 1.00];
 
   function computeBaseTotal(){
@@ -1253,8 +1282,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return { subtotal, discountAmt, netCredit, baseTotal, eligibleCredits };
   }
 
-  // Nominal (no-shortfall) per-installment shares — used only to pre-fill the "paid" inputs
-  // when the student marks an installment as given, assuming it's paid in full.
   function computeNominalAmounts(){
     const { baseTotal } = computeBaseTotal();
     return [
@@ -1264,12 +1291,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
   }
 
-  // Builds the cascading installment plan: each installment must bring the CUMULATIVE
-  // amount paid up to that point to at least its threshold (40% / 70% / 100%) of the base
-  // total. If a checkpoint is missed, a ৳500 fine is added, and that fine debt is carried
-  // forward and must be cleared (along with catching up to the next %) by the next
-  // installment — so the "second installment" 70% checkpoint effectively includes any
-  // fine still owed from installment 1, and so on into the final (100%) installment.
   function computeInstallmentPlan(){
     const { baseTotal } = computeBaseTotal();
     let cumulativePaidBefore = 0;
@@ -1277,13 +1298,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const plan = [];
     for (let i = 0; i < 3; i++) {
       const thresholdAmt = CUM_THRESHOLDS[i] * baseTotal;
-      // Amount due at this checkpoint: catch up to this stage's % of the base total,
-      // plus clear any fine debt still owed from an earlier shortfall.
       const requiredAmt = Math.max(0, thresholdAmt - cumulativePaidBefore + cumulativeFineBefore);
       const given = i < state.installmentsGiven;
       let paid = 0, isShort = false, fineThisStage = 0, cumulativePaidAfter = cumulativePaidBefore;
-      // If an earlier installment was overpaid enough to already clear this checkpoint,
-      // treat this stage as paid even though the student hasn't formally marked it "given".
       let autoPaid = false;
       if (given) {
         paid = state.paidInstallments[i] || 0;
@@ -1417,8 +1434,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       paidContainer.appendChild(div);
     }
-    // Only set the default the first time an installment is revealed; if the user already
-    // typed a value for it, keep it (state.paidInstallments already holds that).
     for(let i = 0; i < state.installmentsGiven; i++){
       if(!state.paidInstallments[i]) {
         const input = paidContainer.querySelector(`.paid-input[data-idx="${i}"]`);
@@ -1436,10 +1451,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('installmentsGiven').addEventListener('change', e => {
     const newGiven = parseInt(e.target.value);
     const nominal = computeNominalAmounts();
-    // Newly selected installments default to "fully paid" (their nominal share) — the
-    // student can edit down if they actually paid less.
     for(let i = state.installmentsGiven; i < newGiven; i++) state.paidInstallments[i] = nominal[i];
-    // Deselected installments no longer count as given.
     for(let i = newGiven; i < 3; i++) state.paidInstallments[i] = 0;
     state.installmentsGiven = newGiven;
     renderPaidInputs();
@@ -1483,16 +1495,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('outTermLabel').textContent = 'Term fee (no discount)';
     document.getElementById('outTermFee').textContent = fmt(state.termFee);
 
-    // --- Cumulative cascading plan: 40% by inst. 1, 70% cumulative by inst. 2 (which
-    // absorbs any fine debt from inst. 1), 100% cumulative by inst. 3 (final). ---
     const { plan, totalFines, totalPaid } = computeInstallmentPlan();
     const total = baseTotal + totalFines;
-    // Display-only: before anything is paid, show a plain 40% / 30% / 30% split of the
-    // total payable. Once an installment is actually paid, its card shows what was
-    // really paid, and whatever remains of the total is divided evenly across the
-    // installments that haven't been paid yet (split two ways after 1 payment, shown
-    // in full on the 3rd after 2 payments). This is purely cosmetic — the fine/checkpoint
-    // math above still runs off the cumulative 40% / 70% / 100% thresholds untouched.
     const paidSoFar = totalPaid;
     const remaining = Math.max(0, total - paidSoFar);
     let displayAmounts;
@@ -1524,7 +1528,6 @@ document.addEventListener('DOMContentLoaded', () => {
         statusClass = isShort ? 'due' : 'paid';
         statusText = isShort ? 'Short paid' : 'Paid';
       } else if(autoPaid){
-        // An earlier installment overpaid enough to cover this checkpoint too.
         statusClass = 'paid'; statusText = 'Paid (overpayment)';
       } else if(idx === state.installmentsGiven){
         statusClass = 'due'; statusText = 'Due now';
@@ -1534,10 +1537,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if(isShort) shortCount++;
 
-      // Keep the dynamic input row (if visible) in sync with the running required amount
-      // and any shortfall warning — this is the "amount changes based on what's actually
-      // been paid" behaviour: if an earlier installment fell short, later required
-      // amounts rise to catch the cumulative % (plus any fine owed) back up.
       const labelEl = paidContainer.querySelector(`[data-label-idx="${idx}"]`);
       const warnEl = paidContainer.querySelector(`[data-warn-idx="${idx}"]`);
       if(labelEl) labelEl.textContent = `${ordinal(idx+1)} Installment paid amount (needed to stay on track: ${fmt(requiredAmt)})`;
@@ -1578,7 +1577,6 @@ document.addEventListener('DOMContentLoaded', () => {
       fineLineEl.style.display = 'none';
     }
 
-    // Prominent on-page warning whenever any given installment missed its cumulative checkpoint.
     const shortfallWarningEl = document.getElementById('shortfallWarning');
     if(shortCount > 0){
       shortfallWarningEl.style.display = 'block';
@@ -1596,9 +1594,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('progressPaidAmt').textContent = fmt(amountPaid) + ' paid';
     document.getElementById('progressTotalAmt').textContent = 'of ' + fmt(total);
 
-    // Don't clamp at zero: if the student has paid more than the total (in any
-    // installment), the whole plan counts as paid and the balance shows as negative
-    // (a credit), rather than pretending the surplus doesn't exist.
     const remainingTotal = total - amountPaid;
     const callout = document.getElementById('balanceCallout');
     const bcLabel = document.getElementById('bcLabel');
@@ -1643,6 +1638,147 @@ document.addEventListener('DOMContentLoaded', () => {
 
   renderPaidInputs();
   render();
+})();
+</script>
+<script>
+(function(){
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const $=id=>document.getElementById(id),DN=['Sat','Sun','Mon','Tue','Wed','Thu','Fri'];
+let secs=[],chosen=[],fac={},titles={},cred={};
+const step=n=>{document.querySelectorAll('#steps span').forEach((e,i)=>e.className=i+1==n?'on':i+1<n?'done':'');['s1','s2','s3','s4','out'].forEach((id,i)=>$(id).classList.toggle('hide',i+1!=n));window.scrollTo(0,0)};
+const fmt=t=>String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+const f12=t=>{const h=Math.floor(t/60),m=t%60;return(h%12||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM')};
+const tm=s=>{const m=s.match(/(\d+):(\d+):([AP])M/);let h=+m[1];if(m[3]=='P'&&h<12)h+=12;if(m[3]=='A'&&h==12)h=0;return h*60+ +m[2]};
+const MD='Sat|Sun|Mon|Tue|Wed|Thu|Fri',TT=/\d{1,2}:\d{2}:[AP]M/.source;
+const UR=new RegExp(String.raw`^(\d{1,4})\s+([A-Z]{3,6})\s+([A-Z]{2,4})\s+(\d{3,4}[A-Z]?)\s+(.*?)\s+((?:${MD})(?:\s+(?:${MD}))?)\s+(${TT})\s*-\s*(${TT})(?:\s+(${TT})\s*-\s*(${TT})|\s+-)?\s*([\s\S]*)$`);
+const SPL=/\s(?=\d{1,4}\s+[A-Z]{3,6}\s+[A-Z]{2,4}\s+\d{3,4}[A-Z]?\s)/;
+
+async function readPdf(file){
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let st=[],so=[];
+  for(let p=1;p<=pdf.numPages;p++){
+    const it=(await (await pdf.getPage(p)).getTextContent()).items.filter(i=>i.str.trim()),rows={};
+    st.push(it.map(i=>i.str).join(' '));
+    it.forEach(i=>{const y=Math.round(i.transform[5]/4);(rows[y]=rows[y]||[]).push(i)});
+    Object.keys(rows).sort((a,b)=>b-a).forEach(y=>so.push(rows[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(i=>i.str).join(' ')))}
+  return[st.join(' '),so.join(' ')]}
+
+function parseText(txt){
+  const map={},seen=new Set();
+  for(const c0 of txt.split(SPL)){
+    const c=c0.replace(/\S*@[\s\S]*$/,'').replace(/United International[\s\S]*$/,'').replace(/\s+/g,' ').trim();
+    const h=c.match(/^(\d{1,4})\s+[A-Z]{3,6}\s+[A-Z]{2,4}\s+\d{3,4}/);if(h)seen.add(+h[1]);
+    const m=c.match(UR);if(!m)continue;
+    let pre=m[5].trim(),room='',r;
+    while((r=pre.match(/\s*(\d{3}(?:\s*\([^)]*\))?)\s*$/))){room=room||r[1];pre=pre.slice(0,r.index)}
+    const sm=pre.match(/^(.*?)\s*([A-Z]{1,2})(\s*\([Ii]f [Rr]equired\))?$/);
+    const cr=m[11].match(/(\d)\s*$/),post=m[11].replace(/\s*\d\s*$/,'').trim().split(/\s+/).filter(Boolean);
+    const dd=m[6].split(' '),sl=[{d:dd[0],s:tm(m[7]),e:tm(m[8])}];
+    if(dd[1])sl.push({d:dd[1],s:tm(m[9]||m[7]),e:tm(m[10]||m[8])});
+    map[+m[1]]={code:m[3]+' '+m[4],sec:sm?sm[2]+(sm[3]?' (if req.)':''):'?',title:sm?sm[1].trim():pre,cr:cr?+cr[1]:0,
+      f:!post.length||post[0]=='TBA'?'TBA':post.slice(0,3).join(' '),room,slots:sl}}
+  return{map,seen}}
+
+function textToSecs(txt){
+  const m={};
+  txt.split('\n').forEach(l=>{
+    const p=l.split(',').map(x=>x.trim());if(p.length<5)return;
+    const t=p[4].match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/),d=(p[3].match(/Sat|Sun|Mon|Tue|Wed|Thu|Fri/gi)||[]).map(x=>x[0].toUpperCase()+x.slice(1,3).toLowerCase());
+    if(!t||!d.length)return;
+    const o=m[p[0]+'|'+p[1]+'|'+p[2]]=m[p[0]+'|'+p[1]+'|'+p[2]]||{course:p[0],sec:p[1],fac:p[2],room:p[5]||'',slots:[]};
+    d.forEach(x=>o.slots.push({d:x,s:+t[1]*60+ +t[2],e:+t[3]*60+ +t[4]}))});
+  return Object.values(m)}
+
+async function handle(f){
+  if(!f)return;$('fn').textContent=f.name;$('pmsg').textContent='Reading PDF…';$('pmsg').className='msg';
+  try{
+    const[a,b]=await readPdf(f),A=parseText(a),B=parseText(b),map={...B.map,...A.map},seen=new Set([...A.seen,...B.seen]);
+    const ks=Object.keys(map).sort((x,y)=>x-y);titles={};cred={};
+    $('raw').value=ks.flatMap(k=>{const r=map[k];titles[r.code]=r.title;cred[r.code]=r.cr;return r.slots.map(x=>[r.code,r.sec,r.f,x.d,fmt(x.s)+'-'+fmt(x.e),r.room].join(', '))}).join('\n');
+    const bad=[...seen].filter(n=>!map[n]),mx=Math.max(0,...seen),miss=[];for(let i=1;i<=mx;i++)if(!seen.has(i))miss.push(i);
+    $('rev').classList.remove('hide');
+    if(!ks.length){$('pmsg').className='msg rterr';$('pmsg').textContent='No class rows recognised. This reader expects the UIU course offering table. You can also type rows in the box below.';$('rev').open=true;return}
+    $('pmsg').innerHTML=`<span class="ok">✓ Read ${ks.length} of ${mx} table rows</span> · ${new Set(ks.map(k=>map[k].code)).size} courses · ${new Set(ks.map(k=>map[k].f)).size} faculty`+(bad.length||miss.length?`<br><span class="rterr">Could not read row(s): ${[...bad,...miss].slice(0,25).join(', ')}. Add them in the review box if you need them.</span>`:'');
+    build()}catch(e){$('pmsg').className='msg rterr';$('pmsg').textContent='Could not read this PDF.'}}
+
+function build(){
+  secs=textToSecs($('raw').value);if(!secs.length)return;
+  $('clist').innerHTML=[...new Set(secs.map(s=>s.course))].sort().map(card).join('');
+  ['s3','s4'].forEach(i=>$(i).classList.add('hide'));$('res').innerHTML='';upd();$('n1').classList.remove('hide')}
+function card(c){const ss=secs.filter(s=>s.course==c);
+  return `<div class="cc" data-c="${c}"><label><input type="checkbox" value="${c}"><span><b>${c}</b><br><small class="msg">${titles[c]||''}${cred[c]?' · '+cred[c]+' cr':''} · ${ss.length} sections</small></span></label><details><summary class="msg">Sections and times</summary>${ss.map(s=>`<small class="msg">${s.sec} · ${s.fac} · ${s.slots.map(x=>x.d+' '+f12(x.s)+'–'+f12(x.e)).join(', ')}${s.room?' · '+s.room:''}</small><br>`).join('')}</details></div>`}
+function upd(){const c=[...document.querySelectorAll('#clist input:checked')].map(i=>i.value);
+  $('sel').innerHTML=c.length?`<b>${c.length} selected · ${c.reduce((a,x)=>a+(cred[x]||0),0)} credits</b> `+c.map(x=>`<span class="chip">${x}${titles[x]?' · '+titles[x].slice(0,22):''} <b data-u="${x}">×</b></span>`).join(''):'<span class="msg">Tick the courses you are taking. They will appear here.</span>'}
+$('sel').onclick=e=>{const u=e.target.dataset.u;if(u){document.querySelector(`#clist input[value="${u}"]`).checked=false;upd()}};
+
+$('pdf').onchange=e=>handle(e.target.files[0]);
+$('dz').ondragover=e=>{e.preventDefault();$('dz').classList.add('ov')};$('dz').ondragleave=()=>$('dz').classList.remove('ov');
+$('dz').ondrop=e=>{e.preventDefault();$('dz').classList.remove('ov');handle(e.dataTransfer.files[0])};
+$('apply').onclick=build;$('clist').onchange=upd;
+$('q').oninput=e=>{const v=e.target.value.toLowerCase();document.querySelectorAll('#clist .cc').forEach(l=>l.style.display=(l.dataset.c+' '+(titles[l.dataset.c]||'')).toLowerCase().includes(v)?'':'none')};
+$('to3').onclick=()=>{
+  chosen=[...document.querySelectorAll('#clist input:checked')].map(i=>i.value);
+  if(!chosen.length){$('sel').innerHTML='<span class="rterr">Select at least one course first</span>';return}
+  const old=fac;fac={};chosen.forEach(c=>fac[c]=old[c]||[]);drawFac();step(3)};
+
+function drawFac(){
+  $('flist').innerHTML=chosen.map(c=>`<div class="course" data-c="${c}"><b>${c}</b> <span class="msg">${titles[c]||''}</span>
+  <details class="fd"><summary><span class="fs"></span></summary><div class="row" style="margin-top:8px"><input class="fq" placeholder="Search faculty…" style="flex:1;min-width:140px"><button class="s" data-a="1">Select all shown</button><button class="s" data-a="0">Clear shown</button></div>
+  <div class="fl">${[...new Set(secs.filter(s=>s.course==c).map(s=>s.fac))].sort().map(f=>`<label data-n="${f.toLowerCase()}"><input type="checkbox" value="${f}"${fac[c].includes(f)?' checked':''}>${f} <span class="msg">(${secs.filter(s=>s.course==c&&s.fac==f).length})</span></label>`).join('')}</div></details><div class="fc"></div></div>`).join('');
+  document.querySelectorAll('#flist .course').forEach(d=>{
+    const c=d.dataset.c,pick=()=>{fac[c]=[...d.querySelectorAll('.fl input:checked')].map(i=>i.value);sync()},sync=()=>{
+      d.querySelector('.fs').textContent=fac[c].length?`${fac[c].length} faculty selected · ${secs.filter(s=>s.course==c&&fac[c].includes(s.fac)).length} sections (click to change)`:`Any faculty · ${secs.filter(s=>s.course==c).length} sections (click to choose)`;
+      d.querySelector('.fc').innerHTML=fac[c].map(f=>`<span class="chip">${f} <b data-f="${f}">×</b></span>`).join('')};
+    d.querySelector('.fl').onchange=pick;
+    d.querySelector('.fc').onclick=e=>{const f=e.target.dataset.f;if(f){const i=d.querySelector(`.fl input[value="${f}"]`);if(i)i.checked=false;pick()}};
+    d.querySelector('.fq').oninput=e=>{const v=e.target.value.toLowerCase();d.querySelectorAll('.fl label').forEach(l=>l.style.display=l.dataset.n.includes(v)?'':'none')};
+    d.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{d.querySelectorAll('.fl label').forEach(l=>{if(l.style.display!='none')l.querySelector('input').checked=b.dataset.a=='1'});pick()});
+    sync()})}
+
+const hm=v=>{const[h,m]=v.split(':');return +h*60+ +m};
+function compat(a,b,gap){for(const x of a.slots)for(const y of b.slots){if(x.d==y.d&&x.s<y.e+gap&&y.s<x.e+gap)return false}return true}
+function solve(doms,gap,limit){
+  const sols=[],asg={};let nodes=0;
+  (function bt(rem,cur){
+    if(sols.length>=limit||++nodes>300000)return;
+    if(!rem.length){sols.push({...asg});return}
+    let bi=0,bs=1e9;rem.forEach((v,i)=>{if(cur[v].length<bs){bs=cur[v].length;bi=i}});
+    const v=rem[bi],rest=rem.filter((_,i)=>i!=bi);
+    for(const val of cur[v]){
+      const nx={};let ok=true;
+      for(const r of rest){nx[r]=cur[r].filter(o=>compat(val,o,gap));if(!nx[r].length){ok=false;break}}
+      if(!ok)continue;asg[v]=val;bt(rest,nx);delete asg[v];if(sols.length>=limit)return}})(Object.keys(doms),doms);
+  return sols}
+function score(sol){
+  const by={};Object.values(sol).forEach(s=>s.slots.forEach(x=>(by[x.d]=by[x.d]||[]).push(x)));let wait=0;
+  Object.values(by).forEach(a=>{a.sort((p,q)=>p.s-q.s);for(let i=1;i<a.length;i++)wait+=Math.max(0,a[i].s-a[i-1].e)});
+  return{days:Object.keys(by).length,wait,by}}
+const col=c=>`hsl(${(chosen.indexOf(c)*137.5+10)%360} 60% 30%)`;
+function tgrid(r){
+  const all=Object.values(r.s).flatMap(s=>s.slots.map(x=>({...x,s0:s}))),K=.8,lo=Math.floor(Math.min(...all.map(x=>x.s))/60)*60,hi=Math.ceil(Math.max(...all.map(x=>x.e))/60)*60,H=(hi-lo)*K;
+  let ax='';for(let t=lo;t<hi;t+=60)ax+=`<i style="top:${(t-lo)*K}px">${f12(t)}</i>`;
+  return `<div class="tg"><div class="ax" style="height:${H}px">${ax}</div>${DN.filter(d=>r.by[d]).map(d=>`<div class="dc"><div class="dh">${d}</div><div class="db" style="height:${H}px">${all.filter(x=>x.d==d).map(x=>{return `<div class="bk" style="top:${(x.s-lo)*K}px;height:${(x.e-x.s)*K-1}px;background:${col(x.s0.course)}"><b>${x.s0.course}</b> ${x.s0.sec}<br>${f12(x.s)}–${f12(x.e)}<br>${x.s0.fac}${x.s0.room?'<br>'+x.s0.room:''}</div>`}).join('')}</div></div>`).join('')}</div>`}
+
+let avoid=[];
+function drawAv(){$('alist').innerHTML=avoid.map((a,i)=>`<span class="chip">${a.d||'Every day'} ${f12(a.s)}–${f12(a.e)} <b data-i="${i}">×</b></span>`).join('')}
+$('aadd').onclick=()=>{const s=hm($('a0').value),e=hm($('a1').value);if(!(e>s))return;avoid.push({d:$('ad').value,s,e});drawAv()};
+$('alist').onclick=e=>{if(e.target.dataset.i!=null){avoid.splice(+e.target.dataset.i,1);drawAv()}};
+$('b3').onclick=()=>step(3);$('n1').onclick=()=>step(2);$('b1').onclick=()=>step(1);$('b2').onclick=()=>step(2);$('n3').onclick=()=>step(4);$('b4').onclick=()=>step(4);$('b0').onclick=()=>step(1);
+$('steps').onclick=e=>{const i=[...$('steps').children].indexOf(e.target);if(i>=0&&e.target.className=='done')step(i+1)};
+step(1);
+$('go').onclick=()=>{$('go').textContent='Solving…';setTimeout(run,20)};
+function run(){
+  const t0=hm($('t0').value),t1=hm($('t1').value),gap=+$('gap').value||0,max=+$('max').value||10,out=$('res'),doms={},empty=[];
+  $('go').textContent='Generate routines';step(5);const off=[...document.querySelectorAll('#offd input:checked')].map(i=>i.value);
+  chosen.forEach(c=>{doms[c]=secs.filter(s=>s.course==c&&(!fac[c].length||fac[c].includes(s.fac))&&s.slots.every(x=>x.s>=t0&&x.e<=t1&&x.e>x.s&&!off.includes(x.d)&&!avoid.some(a=>(!a.d||a.d==x.d)&&x.s<a.e&&a.s<x.e))).sort(()=>Math.random()-.5);if(!doms[c].length)empty.push(c)});
+  if(empty.length){out.innerHTML=`<div class="card rterr">No section of ${empty.join(', ')} fits your faculty, time window, free days and avoided slots. Relax one of them or add more faculty.</div>`;return}
+  const all=solve(doms,gap,2000);
+  if(!all.length){out.innerHTML='<div class="card rterr">No clash-free routine exists with these constraints. Try a smaller break, a wider time window, or more faculty.</div>';return}
+  const sc=all.map(s=>({s,...score(s)})),m=$('sort').value;
+  if(m=='days')sc.sort((a,b)=>a.days-b.days||a.wait-b.wait);else if(m=='gaps')sc.sort((a,b)=>a.wait-b.wait||a.days-b.days);
+  const top=sc.slice(0,max);
+  out.innerHTML=`<p class="msg">Found ${all.length}${all.length>=2000?'+':''} valid combinations. Showing ${top.length}. All times are Bangladesh Standard Time (GMT+6).</p>`+top.map((r,i)=>`<div class="card"><h2>Routine ${i+1} <span class="msg">${r.days} days · ${r.wait} min waiting in between</span></h2><div class="lg">${Object.values(r.s).map(s=>`<span style="background:${col(s.course)}">${s.course} · ${s.sec} · ${s.fac}</span>`).join('')}</div>${tgrid(r)}</div>`).join('');
+  out.scrollIntoView({behavior:'smooth'})}
+
 })();
 </script>
 </body>
