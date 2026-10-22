@@ -397,6 +397,8 @@ body[data-theme="dark"] #routine-tab{--pbg:var(--gold);--pfg:#052018}
 #routine-tab input,#routine-tab select{width:auto;-webkit-appearance:auto;appearance:auto}
 #routine-tab input[type=checkbox]{padding:0}
 .tab-nav{flex-wrap:wrap}
+#routine-tab .pinc{cursor:pointer;transition:filter .15s}#routine-tab .pinc:hover{filter:brightness(1.2)}#routine-tab .bk{cursor:pointer}#routine-tab .bk:hover{filter:brightness(1.15)}
+#routine-tab .pinbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px;padding:10px 12px;border:1px dashed var(--bd);border-radius:8px;background:var(--card)}
 </style>
 </head>
 <body>
@@ -771,7 +773,7 @@ body[data-theme="dark"] #routine-tab{--pbg:var(--gold);--pfg:#052018}
 <div class="row"><select id="ad"><option value="">Every day</option><option>Sat</option><option>Sun</option><option>Mon</option><option>Tue</option><option>Wed</option><option>Thu</option><option>Fri</option></select><input type="time" id="a0" value="13:00"><span class="msg">to</span><input type="time" id="a1" value="14:00"><button id="aadd">Add slot</button></div><div id="alist"></div>
 <p class="msg">All times are Bangladesh Standard Time (GMT+6).</p>
 <div class="nav"><button id="b3">← Back</button><button class="p" id="go">Generate routines</button></div></section>
-<section id="out" class="hide"><div class="nav" style="margin:0 0 12px"><button id="b4">← Back to preferences</button><button id="b0">Start over</button></div><div id="res"></div></section>
+<section id="out" class="hide"><div class="nav" style="margin:0 0 12px"><button id="b4">← Back to preferences</button><button id="b0">Start over</button></div><div id="pinbar"></div><div id="res"></div></section>
   </div><!-- /#routine-tab -->
 
   <footer><p>Abdur Rahman</p></footer>
@@ -1703,7 +1705,7 @@ async function handle(f){
 function build(){
   secs=textToSecs($('raw').value);if(!secs.length)return;
   $('clist').innerHTML=[...new Set(secs.map(s=>s.course))].sort().map(card).join('');
-  ['s3','s4'].forEach(i=>$(i).classList.add('hide'));$('res').innerHTML='';upd();$('n1').classList.remove('hide')}
+  ['s3','s4'].forEach(i=>$(i).classList.add('hide'));$('res').innerHTML='';pins={};upd();$('n1').classList.remove('hide')}
 function card(c){const ss=secs.filter(s=>s.course==c);
   return `<div class="cc" data-c="${c}"><label><input type="checkbox" value="${c}"><span><b>${c}</b><br><small class="msg">${titles[c]||''}${cred[c]?' · '+cred[c]+' cr':''} · ${ss.length} sections</small></span></label><details><summary class="msg">Sections and times</summary>${ss.map(s=>`<small class="msg">${s.sec} · ${s.fac} · ${s.slots.map(x=>x.d+' '+f12(x.s)+'–'+f12(x.e)).join(', ')}${s.room?' · '+s.room:''}</small><br>`).join('')}</details></div>`}
 function upd(){const c=[...document.querySelectorAll('#clist input:checked')].map(i=>i.value);
@@ -1718,7 +1720,7 @@ $('q').oninput=e=>{const v=e.target.value.toLowerCase();document.querySelectorAl
 $('to3').onclick=()=>{
   chosen=[...document.querySelectorAll('#clist input:checked')].map(i=>i.value);
   if(!chosen.length){$('sel').innerHTML='<span class="rterr">Select at least one course first</span>';return}
-  const old=fac;fac={};chosen.forEach(c=>fac[c]=old[c]||[]);drawFac();step(3)};
+  Object.keys(pins).forEach(c=>{if(!chosen.includes(c))delete pins[c]});const old=fac;fac={};chosen.forEach(c=>fac[c]=old[c]||[]);drawFac();step(3)};
 
 function drawFac(){
   $('flist').innerHTML=chosen.map(c=>`<div class="course" data-c="${c}"><b>${c}</b> <span class="msg">${titles[c]||''}</span>
@@ -1756,28 +1758,33 @@ const col=c=>`hsl(${(chosen.indexOf(c)*137.5+10)%360} 60% 30%)`;
 function tgrid(r){
   const all=Object.values(r.s).flatMap(s=>s.slots.map(x=>({...x,s0:s}))),K=.8,lo=Math.floor(Math.min(...all.map(x=>x.s))/60)*60,hi=Math.ceil(Math.max(...all.map(x=>x.e))/60)*60,H=(hi-lo)*K;
   let ax='';for(let t=lo;t<hi;t+=60)ax+=`<i style="top:${(t-lo)*K}px">${f12(t)}</i>`;
-  return `<div class="tg"><div class="ax" style="height:${H}px">${ax}</div>${DN.filter(d=>r.by[d]).map(d=>`<div class="dc"><div class="dh">${d}</div><div class="db" style="height:${H}px">${all.filter(x=>x.d==d).map(x=>{return `<div class="bk" style="top:${(x.s-lo)*K}px;height:${(x.e-x.s)*K-1}px;background:${col(x.s0.course)}"><b>${x.s0.course}</b> ${x.s0.sec}<br>${f12(x.s)}–${f12(x.e)}<br>${x.s0.fac}${x.s0.room?'<br>'+x.s0.room:''}</div>`}).join('')}</div></div>`).join('')}</div>`}
+  return `<div class="tg"><div class="ax" style="height:${H}px">${ax}</div>${DN.filter(d=>r.by[d]).map(d=>`<div class="dc"><div class="dh">${d}</div><div class="db" style="height:${H}px">${all.filter(x=>x.d==d).map(x=>{return `<div class="bk" data-pin="${skey(x.s0)}" style="top:${(x.s-lo)*K}px;height:${(x.e-x.s)*K-1}px;background:${col(x.s0.course)}"><b>${x.s0.course}</b> ${x.s0.sec}<br>${f12(x.s)}–${f12(x.e)}<br>${x.s0.fac}${x.s0.room?'<br>'+x.s0.room:''}</div>`}).join('')}</div></div>`).join('')}</div>`}
 
 let avoid=[];
 function drawAv(){$('alist').innerHTML=avoid.map((a,i)=>`<span class="chip">${a.d||'Every day'} ${f12(a.s)}–${f12(a.e)} <b data-i="${i}">×</b></span>`).join('')}
 $('aadd').onclick=()=>{const s=hm($('a0').value),e=hm($('a1').value);if(!(e>s))return;avoid.push({d:$('ad').value,s,e});drawAv()};
 $('alist').onclick=e=>{if(e.target.dataset.i!=null){avoid.splice(+e.target.dataset.i,1);drawAv()}};
-$('b3').onclick=()=>step(3);$('n1').onclick=()=>step(2);$('b1').onclick=()=>step(1);$('b2').onclick=()=>step(2);$('n3').onclick=()=>step(4);$('b4').onclick=()=>step(4);$('b0').onclick=()=>step(1);
+$('b3').onclick=()=>step(3);$('n1').onclick=()=>step(2);$('b1').onclick=()=>step(1);$('b2').onclick=()=>step(2);$('n3').onclick=()=>step(4);$('b4').onclick=()=>step(4);$('b0').onclick=()=>{pins={};step(1)};
 $('steps').onclick=e=>{const i=[...$('steps').children].indexOf(e.target);if(i>=0&&e.target.className=='done')step(i+1)};
 step(1);
 $('go').onclick=()=>{$('go').textContent='Solving…';setTimeout(run,20)};
+let pins={},keep=false;
+const skey=s=>s.course+'|'+s.sec+'|'+s.fac;
+function drawPins(){const k=Object.entries(pins);$('pinbar').innerHTML=k.length?`<div class="pinbar"><b>🔒 Fixed sections</b>${k.map(([c,v])=>{const p=v.split('|');return `<span class="chip" style="background:${col(c)};color:#fff">${c} · Sec ${p[1]} · ${p[2]} <b data-unpin="${c}">×</b></span>`}).join('')}<button class="s" data-unpin="*">Unpin all</button><span class="msg">The other courses are planned around these.</span></div>`:''}
+$('res').addEventListener('click',e=>{const p=e.target.closest('[data-pin]');if(!p)return;const v=p.dataset.pin,c=v.split('|')[0],y=window.scrollY;if(pins[c]===v)delete pins[c];else pins[c]=v;keep=true;run();keep=false;window.scrollTo(0,y)});
+$('pinbar').addEventListener('click',e=>{const u=e.target.dataset.unpin;if(!u)return;if(u=='*')pins={};else delete pins[u];keep=true;run();keep=false});
 function run(){
   const t0=hm($('t0').value),t1=hm($('t1').value),gap=+$('gap').value||0,max=+$('max').value||10,out=$('res'),doms={},empty=[];
-  $('go').textContent='Generate routines';step(5);const off=[...document.querySelectorAll('#offd input:checked')].map(i=>i.value);
-  chosen.forEach(c=>{doms[c]=secs.filter(s=>s.course==c&&(!fac[c].length||fac[c].includes(s.fac))&&s.slots.every(x=>x.s>=t0&&x.e<=t1&&x.e>x.s&&!off.includes(x.d)&&!avoid.some(a=>(!a.d||a.d==x.d)&&x.s<a.e&&a.s<x.e))).sort(()=>Math.random()-.5);if(!doms[c].length)empty.push(c)});
+  $('go').textContent='Generate routines';if(!keep)step(5);drawPins();const off=[...document.querySelectorAll('#offd input:checked')].map(i=>i.value);
+  chosen.forEach(c=>{doms[c]=secs.filter(s=>s.course==c&&(!fac[c].length||fac[c].includes(s.fac))&&s.slots.every(x=>x.s>=t0&&x.e<=t1&&x.e>x.s&&!off.includes(x.d)&&!avoid.some(a=>(!a.d||a.d==x.d)&&x.s<a.e&&a.s<x.e))).filter(s=>!pins[c]||skey(s)==pins[c]).sort(()=>Math.random()-.5);if(!doms[c].length)empty.push(c)});
   if(empty.length){out.innerHTML=`<div class="card rterr">No section of ${empty.join(', ')} fits your faculty, time window, free days and avoided slots. Relax one of them or add more faculty.</div>`;return}
   const all=solve(doms,gap,2000);
   if(!all.length){out.innerHTML='<div class="card rterr">No clash-free routine exists with these constraints. Try a smaller break, a wider time window, or more faculty.</div>';return}
   const sc=all.map(s=>({s,...score(s)})),m=$('sort').value;
   if(m=='days')sc.sort((a,b)=>a.days-b.days||a.wait-b.wait);else if(m=='gaps')sc.sort((a,b)=>a.wait-b.wait||a.days-b.days);
   const top=sc.slice(0,max);
-  out.innerHTML=`<p class="msg">Found ${all.length}${all.length>=2000?'+':''} valid combinations. Showing ${top.length}. All times are Bangladesh Standard Time (GMT+6).</p>`+top.map((r,i)=>`<div class="card"><h2>Routine ${i+1} <span class="msg">${r.days} days · ${r.wait} min waiting in between</span></h2><div class="lg">${Object.values(r.s).map(s=>`<span style="background:${col(s.course)}">${s.course} · ${s.sec} · ${s.fac}</span>`).join('')}</div>${tgrid(r)}</div>`).join('');
-  out.scrollIntoView({behavior:'smooth'})}
+  out.innerHTML=`<p class="msg">Found ${all.length}${all.length>=2000?'+':''} valid combinations. Showing ${top.length}. All times are Bangladesh Standard Time (GMT+6).</p>`+top.map((r,i)=>`<div class="card"><h2>Routine ${i+1} <span class="msg">${r.days} days · ${r.wait} min waiting in between</span></h2><div class="lg">${Object.values(r.s).map(s=>`<span class="pinc" data-pin="${skey(s)}" title="${pins[s.course]===skey(s)?'Click to unfix':'Click to fix this section'}" style="background:${col(s.course)}">${pins[s.course]===skey(s)?'🔒':'📌'} ${s.course} · ${s.sec} · ${s.fac}</span>`).join('')}</div><div class="msg">Click a course (label or block) to fix its section. The other courses are re-planned around it.</div>${tgrid(r)}</div>`).join('');
+  if(!keep)out.scrollIntoView({behavior:'smooth'})}
 
 })();
 </script>
