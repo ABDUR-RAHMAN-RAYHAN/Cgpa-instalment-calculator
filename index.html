@@ -700,7 +700,20 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
         </div>
 
         <div class="card">
-          <div class="section-title"><span class="section-num">03</span> Semester / trimester fee</div>
+          <div class="section-title"><span class="section-num">03</span> Retake credits <span style="font-weight:400;font-size:13px;color:var(--ink-faint)">(optional)</span></div>
+          <p class="section-hint">Courses you are retaking. They are charged at the same per-credit fee as above.</p>
+          <div class="field-group">
+            <label class="field-label">First-time retake credits <span style="color:var(--gold-strong)">· 50% scholarship for every student</span></label>
+            <input type="number" id="retakeFirst" class="inline-input" placeholder="e.g. 3" min="0" value="0">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Repeat retake credits <span style="color:var(--rust)">· retaken more than once, full fee</span></label>
+            <input type="number" id="retakeRepeat" class="inline-input" placeholder="e.g. 3" min="0" value="0">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title"><span class="section-num">04</span> Semester / trimester fee</div>
           <div class="pill-row" id="termFeePills">
             <button type="button" class="pill" data-val="6500">Trimester · ৳6,500</button>
             <button type="button" class="pill" data-val="9750">Semester · ৳9,750</button>
@@ -713,7 +726,7 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
         </div>
 
         <div class="card">
-          <div class="section-title"><span class="section-num">04</span> Waiver or scholarship</div>
+          <div class="section-title"><span class="section-num">05</span> Waiver or scholarship</div>
           <div class="discount-groups">
             <div>
               <div class="discount-group-label">Waiver</div>
@@ -748,7 +761,7 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
         </div>
 
         <div class="card">
-          <div class="section-title"><span class="section-num">05</span> Payments made so far(optional)</div>
+          <div class="section-title"><span class="section-num">06</span> Payments made so far(optional)</div>
           <p class="section-hint">Tell us where you are in the installment plan, then confirm what you actually paid for each one.</p>
           <div class="field-group">
             <label class="field-label">Installments given so far</label>
@@ -777,6 +790,9 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
             <div class="line negative"><span class="desc" id="outDiscountLabel">Discount</span><span class="amt" id="outDiscountAmt">−৳0</span></div>
             <p class="bc-note" id="discountCapNote" style="display:none; margin:-4px 0 8px; color:var(--rust); font-size:12px;"></p>
             <div class="line"><span class="desc">Net credit fee</span><span class="amt" id="outNetCredit">৳0</span></div>
+            <div class="line" id="rtFirstLine" style="display:none;"><span class="desc" id="rtFirstDesc">Retake credits</span><span class="amt" id="rtFirstAmt">৳0</span></div>
+            <div class="line negative" id="rtDiscLine" style="display:none;"><span class="desc">Retake scholarship (50%)</span><span class="amt" id="rtDiscAmt">−৳0</span></div>
+            <div class="line" id="rtRepeatLine" style="display:none;"><span class="desc" id="rtRepeatDesc">Repeat retake credits</span><span class="amt" id="rtRepeatAmt">৳0</span></div>
             <div class="line"><span class="desc" id="outTermLabel">Term fee</span><span class="amt" id="outTermFee">৳0</span></div>
             <div class="line" id="fineLine" style="display:none;"><span class="desc" style="color:var(--rust);">Late/short-payment fine</span><span class="amt" id="outFineAmt" style="color:var(--rust);">৳0</span></div>
             <div class="line total"><span class="desc">Total payable</span><span class="amt" id="outTotal">৳0</span></div>
@@ -831,7 +847,7 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
 <div class="pref">
 <label>Earliest start<input type="time" id="t0" value="08:00"></label>
 <label>Latest end<input type="time" id="t1" value="17:00"></label>
-<label>Minimum break between classes<input type="number" id="gap" value="0" min="0" step="5"></label>
+<label>Minimum break between classes (min, 0 = back-to-back is fine)<input type="number" id="gap" value="0" min="0" step="5"></label>
 <label>Routines to show<input type="number" id="max" value="10" min="1" max="50"></label>
 <label>Sort by<select id="sort"><option value="days">Fewest campus days</option><option value="gaps">Least waiting time</option><option value="rand">Random variety</option></select></label>
 </div>
@@ -844,7 +860,7 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
 <section id="out" class="hide"><div class="nav" style="margin:0 0 12px"><button id="b4">← Back to preferences</button><button id="b0">Start over</button></div><div id="pinbar"></div><div id="res"></div></section>
   </div><!-- /#routine-tab -->
 
-  
+  <footer><p>Abdur Rahman</p></footer>
 </div>
 
 <script>
@@ -1332,7 +1348,9 @@ document.addEventListener('DOMContentLoaded', () => {
     discountType: 'none',
     discountRate: 0,
     installmentsGiven: 0,
-    paidInstallments: [0, 0, 0]
+    paidInstallments: [0, 0, 0],
+    retakeFirst: 0,
+    retakeRepeat: 0
   };
 
   const ordinal = n => ['1st','2nd','3rd'][n-1] || (n + 'th');
@@ -1348,8 +1366,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const subtotal = state.creditFee * state.credits;
     const discountAmt = eligibleAmount * state.discountRate;
     const netCredit = subtotal - discountAmt;
-    const baseTotal = netCredit + state.termFee;
-    return { subtotal, discountAmt, netCredit, baseTotal, eligibleCredits };
+    const rf = state.retakeFirst * state.creditFee, rfDisc = rf * 0.5, rr = state.retakeRepeat * state.creditFee;
+    const baseTotal = netCredit + (rf - rfDisc) + rr + state.termFee;
+    return { subtotal, discountAmt, netCredit, baseTotal, eligibleCredits, rf, rfDisc, rr };
   }
 
   function computeNominalAmounts(){
@@ -1428,6 +1447,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.querySelector('#creditFeePills .pill[data-val="5525"]').classList.add('active');
 
+  ['retakeFirst','retakeRepeat'].forEach(id => document.getElementById(id).addEventListener('input', e => {
+    state[id] = Math.max(0, parseFloat(e.target.value) || 0);
+    render();
+  }));
   document.getElementById('creditsTaken').addEventListener('input', e => {
     state.credits = parseFloat(e.target.value) || 0;
     render();
@@ -1537,7 +1560,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function render(){
-    const { subtotal, discountAmt, netCredit, baseTotal, eligibleCredits } = computeBaseTotal();
+    const { subtotal, discountAmt, netCredit, baseTotal, eligibleCredits, rf, rfDisc, rr } = computeBaseTotal();
     const extraCredits = Math.max(0, state.credits - eligibleCredits);
 
     document.getElementById('outCreditFee').textContent = fmt(state.creditFee);
@@ -1562,6 +1585,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('outNetCredit').textContent = fmt(netCredit);
+    [['rtFirstLine', state.retakeFirst > 0, 'rtFirstDesc', `Retake credits · 1st time (${state.retakeFirst} cr)`, 'rtFirstAmt', fmt(rf)],
+     ['rtDiscLine', state.retakeFirst > 0, null, null, 'rtDiscAmt', '−' + fmt(rfDisc)],
+     ['rtRepeatLine', state.retakeRepeat > 0, 'rtRepeatDesc', `Retake credits · repeat (${state.retakeRepeat} cr, full fee)`, 'rtRepeatAmt', fmt(rr)]
+    ].forEach(([l, show, d, dt, a, at]) => {
+      document.getElementById(l).style.display = show ? 'flex' : 'none';
+      if (d) document.getElementById(d).textContent = dt;
+      document.getElementById(a).textContent = at;
+    });
     document.getElementById('outTermLabel').textContent = 'Term fee (no discount)';
     document.getElementById('outTermFee').textContent = fmt(state.termFee);
 
