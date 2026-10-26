@@ -493,7 +493,7 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
   <div id="cgpa-tab" class="tab-content active">
 
   <div class="sheet">
-    <h2>Current Standing</h2>
+    <h2>Previous trimester Standing</h2>
     <p class="sub">Optional — leave blank if this is your first trimester.</p>
     <div class="grid cols-3">
       <div>
@@ -502,12 +502,12 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
         <p id="cgpa-error" class="err"></p>
       </div>
       <div>
-        <label for="completed-credits">Attempted Credits</label>
+        <label for="completed-credits">Total Attempted Credits</label>
         <input type="number" id="completed-credits" step="0.5" min="0" placeholder="incl. F grades">
         <p id="attempted-credits-error" class="err"></p>
       </div>
       <div>
-        <label for="completed-earned-credits">Completed Credits</label>
+        <label for="completed-earned-credits">Total Completed Credits</label>
         <input type="number" id="completed-earned-credits" step="0.5" min="0" placeholder="e.g., 85">
         <p id="earned-credits-error" class="err"></p>
       </div>
@@ -517,7 +517,7 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
 
   <div class="sheet">
     <h2>This Trimester's Courses</h2>
-    <p class="sub">Add each course with its credit hours and expected grade.</p>
+    <p class="sub"> </p>
     <form id="add-course-form" class="grid cols-3">
       <div>
         <label for="course-credit">Credit Hours</label>
@@ -551,7 +551,7 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
 
   <div class="sheet">
     <h2>Retake Courses <span style="font-weight:400; color:var(--ink-faint); font-size:.85rem;">(optional)</span></h2>
-    <p class="sub">Improving a past grade or clearing an F — needs <strong>Current Standing</strong> above filled in first, since the math depends on your prior credits.</p>
+    <p class="sub"></p>
     <form id="add-retake-form" class="grid cols-4">
       <div>
         <label for="retake-credit">Credits</label>
@@ -695,19 +695,19 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
 
         <div class="card">
           <div class="section-title"><span class="section-num">02</span> Credits taken</div>
-          <p class="section-hint">Total number of credits you're registering for this term.</p>
+          <p class="section-hint"></p>
           <input type="number" id="creditsTaken" class="inline-input" placeholder="e.g. 12" min="0" value="12">
         </div>
 
         <div class="card">
           <div class="section-title"><span class="section-num">03</span> Retake credits <span style="font-weight:400;font-size:13px;color:var(--ink-faint)">(optional)</span></div>
-          <p class="section-hint">Courses you are retaking. They are charged at the same per-credit fee as above.</p>
+          <p class="section-hint"></p>
           <div class="field-group">
-            <label class="field-label">First-time retake credits <span style="color:var(--gold-strong)">· 50% scholarship for every student</span></label>
+            <label class="field-label">First-time retake credits <span style="color:var(--gold-strong)"></span></label>
             <input type="number" id="retakeFirst" class="inline-input" placeholder="e.g. 3" min="0" value="0">
           </div>
           <div class="field-group">
-            <label class="field-label">Repeat retake credits <span style="color:var(--rust)">· retaken more than once, full fee</span></label>
+            <label class="field-label">Repeat retake credits <span style="color:var(--rust)"></span></label>
             <input type="number" id="retakeRepeat" class="inline-input" placeholder="e.g. 3" min="0" value="0">
           </div>
         </div>
@@ -762,7 +762,7 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
 
         <div class="card">
           <div class="section-title"><span class="section-num">06</span> Payments made so far(optional)</div>
-          <p class="section-hint">Tell us where you are in the installment plan, then confirm what you actually paid for each one.</p>
+          <p class="section-hint"></p>
           <div class="field-group">
             <label class="field-label">Installments given so far</label>
             <select id="installmentsGiven">
@@ -860,7 +860,7 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
 <section id="out" class="hide"><div class="nav" style="margin:0 0 12px"><button id="b4">← Back to preferences</button><button id="b0">Start over</button></div><div id="pinbar"></div><div id="res"></div></section>
   </div><!-- /#routine-tab -->
 
-  <footer><p>Abdur Rahman</p></footer>
+  <footer><p> </p></footer>
 </div>
 
 <script>
@@ -1507,12 +1507,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const paidContainer = document.getElementById('paidInputsContainer');
-  const stageHint = ['Reach 40% of the total', 'Reach 70% of the total (cumulative)', 'Full amount due (100%)'];
+  const stageHint = [''];
 
   function renderPaidInputs(){
     paidContainer.innerHTML = '';
     if(state.installmentsGiven === 0){
-      paidContainer.innerHTML = '<p class="section-hint" style="margin:12px 0 0;">Select how many installments you\'ve made above, then confirm the amount for each.</p>';
+      paidContainer.innerHTML = '<p class="section-hint" style="margin:12px 0 0;"></p>';
       return;
     }
     const nominal = computeNominalAmounts();
