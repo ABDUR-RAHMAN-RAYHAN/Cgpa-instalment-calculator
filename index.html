@@ -501,7 +501,11 @@ body[data-theme="dark"] .btn-ink:active,body[data-theme="dark"] .btn-main:active
         <input type="number" id="current-cgpa" step="0.01" min="0.00" max="4.00" placeholder="≤ 4.00">
         <p id="cgpa-error" class="err"></p>
       </div>
-      
+      <div>
+        <label for="completed-credits">Total Attempted Credits</label>
+        <input type="number" id="completed-credits" step="0.5" min="0" placeholder="incl. F grades">
+        <p id="attempted-credits-error" class="err"></p>
+      </div>
       <div>
         <label for="completed-earned-credits">Total Completed Credits</label>
         <input type="number" id="completed-earned-credits" step="0.5" min="0" placeholder="e.g., 85">
